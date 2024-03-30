@@ -5,6 +5,7 @@
                   xmlns:local="using:MrCapitalQ.AutoUnlaunch"
                   xmlns:winuiex="using:WinUIEx"
                   xmlns:controls="using:MrCapitalQ.AutoUnlaunch.Controls"
+                  xmlns:settings="using:MrCapitalQ.AutoUnlaunch.Settings"
                   xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
                   xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
                   mc:Ignorable="d"
@@ -27,9 +28,6 @@
                            Icon="{x:Bind Icon}"
                            Title="{x:Bind Title}"
                            Window="{x:Bind}" />
-        <Button x:Name="myButton"
-                HorizontalAlignment="Center"
-                Grid.Row="1"
-                Click="myButton_Click">Click Me</Button>
+        <settings:SettingsPage Grid.Row="1" />
     </Grid>
 </winuiex:WindowEx>

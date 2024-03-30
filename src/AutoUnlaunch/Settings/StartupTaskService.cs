@@ -1,6 +1,6 @@
 ﻿using Windows.ApplicationModel;
 
-namespace MrCapitalQ.AutoUnlaunch;
+namespace MrCapitalQ.AutoUnlaunch.Settings;
 
 internal class StartupTaskService
 {
