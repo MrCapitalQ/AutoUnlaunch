@@ -1,0 +1,10 @@
+{
+  "profiles": {
+    "AutoUnlaunch (Package)": {
+      "commandName": "MsixPackage"
+    },
+    "AutoUnlaunch (Unpackaged)": {
+      "commandName": "Project"
+    }
+  }
+}
