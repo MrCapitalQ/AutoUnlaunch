@@ -51,4 +51,13 @@ public static class ServiceCollectionExtensions
         services.TryAddTransient<LauncherChildProcessChecker>();
         return services;
     }
+
+    public static IServiceCollection AddEpic(this IServiceCollection services)
+    {
+        services.AddSingleton<ILauncherHandler, EpicLauncherHandler>();
+        services.TryAddTransient<EpicSettingsService>();
+        services.TryAddTransient<LauncherChildProcessChecker>();
+        services.AddProtocolLauncher();
+        return services;
+    }
 }
