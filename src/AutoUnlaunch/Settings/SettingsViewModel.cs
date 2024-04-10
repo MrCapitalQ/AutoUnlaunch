@@ -1,4 +1,5 @@
 ﻿using CommunityToolkit.Mvvm.ComponentModel;
+using MrCapitalQ.AutoUnlaunch.Shared;
 using Windows.ApplicationModel;
 
 namespace MrCapitalQ.AutoUnlaunch.Settings;
@@ -6,6 +7,7 @@ namespace MrCapitalQ.AutoUnlaunch.Settings;
 internal partial class SettingsViewModel : ObservableObject
 {
     private readonly StartupTaskService _startupTaskService;
+    private readonly SettingsService _settingsService;
 
     private bool _isStartupOn;
 
@@ -15,10 +17,17 @@ internal partial class SettingsViewModel : ObservableObject
     [ObservableProperty]
     private string _startupSettingsText = string.Empty;
 
-    public SettingsViewModel(StartupTaskService startupTaskService)
+    [ObservableProperty]
+    private ComboBoxOption<AppExitBehavior> _selectedExitBehavior;
+
+    public SettingsViewModel(StartupTaskService startupTaskService, SettingsService settingsService)
     {
         _startupTaskService = startupTaskService;
+        _settingsService = settingsService;
+
         UpdateStartupState();
+        SelectedExitBehavior = ExitBehaviorOptions.FirstOrDefault(x => x.Value == _settingsService.GetAppExitBehavior())
+            ?? ExitBehaviorOptions.First(x => x.Value == AppExitBehavior.RunInBackground);
     }
 
     public bool IsStartupOn
@@ -26,6 +35,13 @@ internal partial class SettingsViewModel : ObservableObject
         get => _isStartupOn;
         set => UpdateStartupState(value);
     }
+
+    public List<ComboBoxOption<AppExitBehavior>> ExitBehaviorOptions { get; } =
+    [
+        new(AppExitBehavior.Ask, "Ask everytime"),
+        new(AppExitBehavior.RunInBackground, "Run in the background"),
+        new(AppExitBehavior.Stop, "Stop application")
+    ];
 
     private async void UpdateStartupState(bool? isEnabled = null)
     {
@@ -66,4 +82,7 @@ internal partial class SettingsViewModel : ObservableObject
 
         OnPropertyChanged(nameof(IsStartupOn));
     }
+
+    partial void OnSelectedExitBehaviorChanged(ComboBoxOption<AppExitBehavior> value)
+        => _settingsService.SetAppExitBehavior(value.Value);
 }

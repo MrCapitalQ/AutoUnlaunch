@@ -1,4 +1,5 @@
-﻿using Microsoft.Extensions.DependencyInjection;
+﻿using CommunityToolkit.Mvvm.Messaging;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Windows.AppLifecycle;
 using MrCapitalQ.AutoUnlaunch;
@@ -24,6 +25,9 @@ builder.Services.AddSingleton<SettingsPage>();
 builder.Services.AddSingleton<SettingsViewModel>();
 
 builder.Services.AddSingleton<StartupTaskService>();
+builder.Services.AddSingleton<LocalApplicationData>();
+builder.Services.AddSingleton<SettingsService>();
+builder.Services.AddSingleton<IMessenger>(WeakReferenceMessenger.Default);
 
 var host = builder.Build();
 host.Run();

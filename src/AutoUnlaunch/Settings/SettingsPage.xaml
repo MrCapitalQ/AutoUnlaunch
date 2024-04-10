@@ -37,6 +37,13 @@
                     <ToggleSwitch IsOn="{x:Bind _viewModel.IsStartupOn, Mode=TwoWay}"
                                   IsEnabled="{x:Bind _viewModel.IsStartupToggleEnabled, Mode=OneWay}" />
                 </toolkit:SettingsCard>
+                <toolkit:SettingsCard Header="Exit behavior"
+                                      HeaderIcon="{ui:FontIcon Glyph=&#xEA39;}"
+                                      Description="Choose what happens when closing the main window">
+                    <ComboBox ItemsSource="{x:Bind _viewModel.ExitBehaviorOptions}"
+                              SelectedItem="{x:Bind _viewModel.SelectedExitBehavior, Mode=TwoWay}"
+                              DisplayMemberPath="Display" />
+                </toolkit:SettingsCard>
             </StackPanel>
         </ScrollViewer>
     </Grid>
