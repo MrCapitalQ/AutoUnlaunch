@@ -3,7 +3,6 @@ using Microsoft.Extensions.Logging.Testing;
 using Microsoft.Extensions.Time.Testing;
 using MrCapitalQ.AutoUnlaunch.Core.AppData;
 using MrCapitalQ.AutoUnlaunch.Core.Launchers;
-using MrCapitalQ.AutoUnlaunch.Core.Tests.AppData;
 
 namespace MrCapitalQ.AutoUnlaunch.Core.Tests.Launchers;
 
@@ -269,5 +268,17 @@ public class LauncherHandlerTests
             CalledStopLauncherAsync = true;
             return Task.CompletedTask;
         }
+    }
+
+    private class TestLauncherSettingsService : LauncherSettingsService
+    {
+        public const string IsLauncherEnabledTestKey = "TestLauncher_IsEnabled";
+        public const string LauncherStopDelayTestKey = "TestLauncher_StopDelay";
+        public const string LauncherStopMethodTestKey = "TestLauncher_StopMethod";
+
+        public TestLauncherSettingsService(IApplicationDataStore applicationDataStore) : base(applicationDataStore)
+        { }
+
+        protected override string LauncherKey => "TestLauncher";
     }
 }

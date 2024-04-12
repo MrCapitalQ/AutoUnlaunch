@@ -1,3 +1,3 @@
 ﻿namespace MrCapitalQ.AutoUnlaunch.Shared;
 
-internal record ComboBoxOption<T>(T Value, string Display);
+public record ComboBoxOption<T>(T Value, string Display);
