@@ -1,6 +1,8 @@
 ﻿using MrCapitalQ.AutoUnlaunch.Core.AppData;
 using MrCapitalQ.AutoUnlaunch.Core.Startup;
 using MrCapitalQ.AutoUnlaunch.Settings;
+using MrCapitalQ.AutoUnlaunch.Shared;
+using Windows.ApplicationModel;
 
 namespace MrCapitalQ.AutoUnlaunch.Tests.Settings;
 
@@ -8,6 +10,7 @@ public class SettingsViewModelTests
 {
     private readonly IStartupTaskService _startupTaskService;
     private readonly ISettingsService _settingsService;
+    private readonly IPackageInfo _packageInfo;
 
     private readonly SettingsViewModel _viewModel;
 
@@ -15,8 +18,9 @@ public class SettingsViewModelTests
     {
         _startupTaskService = Substitute.For<IStartupTaskService>();
         _settingsService = Substitute.For<ISettingsService>();
+        _packageInfo = Substitute.For<IPackageInfo>();
 
-        _viewModel = new(_startupTaskService, _settingsService);
+        _viewModel = new(_startupTaskService, _settingsService, _packageInfo);
     }
 
     [Fact]
@@ -25,7 +29,7 @@ public class SettingsViewModelTests
         var expected = AppExitBehavior.Stop;
         _settingsService.GetAppExitBehavior().Returns(expected);
 
-        var viewModel = new SettingsViewModel(_startupTaskService, _settingsService);
+        var viewModel = new SettingsViewModel(_startupTaskService, _settingsService, _packageInfo);
 
         Assert.Equal(expected, viewModel.SelectedExitBehavior.Value);
     }
@@ -36,9 +40,22 @@ public class SettingsViewModelTests
         var expected = AppExitBehavior.RunInBackground;
         _settingsService.GetAppExitBehavior().Returns((AppExitBehavior)100);
 
-        var viewModel = new SettingsViewModel(_startupTaskService, _settingsService);
+        var viewModel = new SettingsViewModel(_startupTaskService, _settingsService, _packageInfo);
 
         Assert.Equal(expected, viewModel.SelectedExitBehavior.Value);
+    }
+
+    [Fact]
+    public void Ctor_InitializesWithPackageInfo()
+    {
+        var expectedAppDisplayName = "AppName";
+        _packageInfo.DisplayName.Returns(expectedAppDisplayName);
+        _packageInfo.Version.Returns(new PackageVersion(1, 2, 3, 0));
+
+        var viewModel = new SettingsViewModel(_startupTaskService, _settingsService, _packageInfo);
+
+        Assert.Equal(expectedAppDisplayName, viewModel.AppDisplayName);
+        Assert.Equal("1.2.3", viewModel.Version);
     }
 
     [Fact]
@@ -64,7 +81,7 @@ public class SettingsViewModelTests
     {
         _startupTaskService.GetStartupStateAsync().Returns(startupState);
 
-        var viewModel = new SettingsViewModel(_startupTaskService, _settingsService);
+        var viewModel = new SettingsViewModel(_startupTaskService, _settingsService, _packageInfo);
 
         Assert.Equal(expectedIsStartupOn, viewModel.IsStartupOn);
         Assert.Equal(expectedIsStartupToggleEnabled, viewModel.IsStartupToggleEnabled);

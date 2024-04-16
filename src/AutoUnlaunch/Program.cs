@@ -6,6 +6,7 @@ using MrCapitalQ.AutoUnlaunch;
 using MrCapitalQ.AutoUnlaunch.Core;
 using MrCapitalQ.AutoUnlaunch.Infrastructure;
 using MrCapitalQ.AutoUnlaunch.Settings;
+using MrCapitalQ.AutoUnlaunch.Shared;
 using System.Diagnostics.CodeAnalysis;
 
 [ExcludeFromCodeCoverage]
@@ -37,6 +38,7 @@ internal class Program
         builder.Services.AddSettingsService();
 
         builder.Services.AddSingleton<IMessenger>(WeakReferenceMessenger.Default);
+        builder.Services.AddTransient<IPackageInfo, PackageInfo>();
 
         var host = builder.Build();
         host.Run();

@@ -1,4 +1,5 @@
 ﻿using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.WinUI.Helpers;
 using MrCapitalQ.AutoUnlaunch.Core.AppData;
 using MrCapitalQ.AutoUnlaunch.Core.Startup;
 using MrCapitalQ.AutoUnlaunch.Shared;
@@ -21,7 +22,9 @@ internal partial class SettingsViewModel : ObservableObject
     [ObservableProperty]
     private ComboBoxOption<AppExitBehavior> _selectedExitBehavior;
 
-    public SettingsViewModel(IStartupTaskService startupTaskService, ISettingsService settingsService)
+    public SettingsViewModel(IStartupTaskService startupTaskService,
+        ISettingsService settingsService,
+        IPackageInfo packageInfo)
     {
         _startupTaskService = startupTaskService;
         _settingsService = settingsService;
@@ -29,6 +32,8 @@ internal partial class SettingsViewModel : ObservableObject
         UpdateStartupState();
         SelectedExitBehavior = ExitBehaviorOptions.FirstOrDefault(x => x.Value == _settingsService.GetAppExitBehavior())
             ?? ExitBehaviorOptions.First(x => x.Value == AppExitBehavior.RunInBackground);
+        AppDisplayName = packageInfo.DisplayName;
+        Version = packageInfo.Version.ToFormattedString(3);
     }
 
     public bool IsStartupOn
@@ -43,6 +48,9 @@ internal partial class SettingsViewModel : ObservableObject
         new(AppExitBehavior.RunInBackground, "Run in the background"),
         new(AppExitBehavior.Stop, "Stop application")
     ];
+
+    public string AppDisplayName { get; }
+    public string Version { get; }
 
     private async void UpdateStartupState(bool? isEnabled = null)
     {
