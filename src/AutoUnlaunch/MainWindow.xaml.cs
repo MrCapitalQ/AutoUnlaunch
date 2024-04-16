@@ -1,7 +1,7 @@
 using CommunityToolkit.Mvvm.Messaging;
 using Microsoft.UI.Windowing;
 using Microsoft.UI.Xaml.Controls;
-using MrCapitalQ.AutoUnlaunch.Settings;
+using MrCapitalQ.AutoUnlaunch.Core.AppData;
 using MrCapitalQ.AutoUnlaunch.Shared;
 using Windows.ApplicationModel;
 using WinUIEx;
@@ -10,7 +10,7 @@ namespace MrCapitalQ.AutoUnlaunch;
 
 public sealed partial class MainWindow : WindowEx
 {
-    private readonly SettingsService _settingsService;
+    private readonly ISettingsService _settingsService;
     private readonly IMessenger _messenger;
     private readonly ContentDialog _closeDialog = new()
     {
@@ -24,7 +24,7 @@ public sealed partial class MainWindow : WindowEx
 
     private bool _isDialogVisible = false;
 
-    public MainWindow(SettingsService settingsService, IMessenger messenger)
+    public MainWindow(ISettingsService settingsService, IMessenger messenger)
     {
         _settingsService = settingsService;
         _messenger = messenger;

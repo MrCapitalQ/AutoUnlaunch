@@ -1,4 +1,4 @@
-﻿namespace MrCapitalQ.AutoUnlaunch.Shared;
+﻿namespace MrCapitalQ.AutoUnlaunch.Core.AppData;
 
 public enum AppExitBehavior
 {

@@ -3,6 +3,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.UI.Xaml;
 using Microsoft.Windows.AppLifecycle;
+using MrCapitalQ.AutoUnlaunch.Core.AppData;
 using MrCapitalQ.AutoUnlaunch.Shared;
 using System.Runtime.InteropServices;
 using WinUIEx;
@@ -28,13 +29,16 @@ public partial class App : Application
     {
         _ = SetPreferredAppMode(PreferredAppMode.AllowDark);
 
+        Services.GetRequiredService<ISettingsService>().SetHasBeenLaunchedOnce();
+
         LifetimeWindow = Services.GetRequiredService<LifetimeWindow>();
         LifetimeWindow.Closed += LifetimeWindow_Closed;
 
         var messenger = Services.GetRequiredService<IMessenger>();
         messenger.Register<App, StopAppMessage>(this, (r, m) => r.LifetimeWindow?.Close());
 
-        if (AppInstance.GetCurrent().GetActivatedEventArgs().Kind != ExtendedActivationKind.StartupTask)
+        if (AppInstance.GetCurrent().GetActivatedEventArgs().Kind != ExtendedActivationKind.StartupTask
+            && !Environment.GetCommandLineArgs().Contains("-silent"))
             ShowMainWindow();
     }
 
