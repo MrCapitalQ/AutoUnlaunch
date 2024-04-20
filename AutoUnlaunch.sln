@@ -9,9 +9,13 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AutoUnlaunch", "src\AutoUnl
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AutoUnlaunch.Background", "src\AutoUnlaunch.Background\AutoUnlaunch.Background.csproj", "{D993B269-2C12-4251-B534-86837B9C38D9}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AutoUnlaunch.Core", "src\AutoUnlaunch.Core\AutoUnlaunch.Core.csproj", "{A6333A8E-F38F-44E8-B10A-E0D5F24AA95C}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AutoUnlaunch.Core", "src\AutoUnlaunch.Core\AutoUnlaunch.Core.csproj", "{A6333A8E-F38F-44E8-B10A-E0D5F24AA95C}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AutoUnlaunch.Infrastructure", "src\AutoUnlaunch.Infrastructure\AutoUnlaunch.Infrastructure.csproj", "{BC20B4A4-C6D1-4672-B8AF-986FF4B78269}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AutoUnlaunch.Infrastructure", "src\AutoUnlaunch.Infrastructure\AutoUnlaunch.Infrastructure.csproj", "{BC20B4A4-C6D1-4672-B8AF-986FF4B78269}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "test", "test", "{06752B94-C665-4634-89E6-E4009349F295}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AutoUnlaunch.Core.Tests", "test\AutoUnlaunch.Core.Tests\AutoUnlaunch.Core.Tests.csproj", "{5428A9AB-8C99-42CF-9F55-BA222AD7926D}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -77,6 +81,18 @@ Global
 		{BC20B4A4-C6D1-4672-B8AF-986FF4B78269}.Release|x64.Build.0 = Release|x64
 		{BC20B4A4-C6D1-4672-B8AF-986FF4B78269}.Release|x86.ActiveCfg = Release|x86
 		{BC20B4A4-C6D1-4672-B8AF-986FF4B78269}.Release|x86.Build.0 = Release|x86
+		{5428A9AB-8C99-42CF-9F55-BA222AD7926D}.Debug|ARM64.ActiveCfg = Debug|ARM64
+		{5428A9AB-8C99-42CF-9F55-BA222AD7926D}.Debug|ARM64.Build.0 = Debug|ARM64
+		{5428A9AB-8C99-42CF-9F55-BA222AD7926D}.Debug|x64.ActiveCfg = Debug|x64
+		{5428A9AB-8C99-42CF-9F55-BA222AD7926D}.Debug|x64.Build.0 = Debug|x64
+		{5428A9AB-8C99-42CF-9F55-BA222AD7926D}.Debug|x86.ActiveCfg = Debug|x86
+		{5428A9AB-8C99-42CF-9F55-BA222AD7926D}.Debug|x86.Build.0 = Debug|x86
+		{5428A9AB-8C99-42CF-9F55-BA222AD7926D}.Release|ARM64.ActiveCfg = Release|ARM64
+		{5428A9AB-8C99-42CF-9F55-BA222AD7926D}.Release|ARM64.Build.0 = Release|ARM64
+		{5428A9AB-8C99-42CF-9F55-BA222AD7926D}.Release|x64.ActiveCfg = Release|x64
+		{5428A9AB-8C99-42CF-9F55-BA222AD7926D}.Release|x64.Build.0 = Release|x64
+		{5428A9AB-8C99-42CF-9F55-BA222AD7926D}.Release|x86.ActiveCfg = Release|x86
+		{5428A9AB-8C99-42CF-9F55-BA222AD7926D}.Release|x86.Build.0 = Release|x86
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -86,6 +102,7 @@ Global
 		{D993B269-2C12-4251-B534-86837B9C38D9} = {9A1286F3-F88C-4104-A66B-7D1459509FE6}
 		{A6333A8E-F38F-44E8-B10A-E0D5F24AA95C} = {9A1286F3-F88C-4104-A66B-7D1459509FE6}
 		{BC20B4A4-C6D1-4672-B8AF-986FF4B78269} = {9A1286F3-F88C-4104-A66B-7D1459509FE6}
+		{5428A9AB-8C99-42CF-9F55-BA222AD7926D} = {06752B94-C665-4634-89E6-E4009349F295}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {29C1BE06-8E57-4373-82FC-CC57D658B172}

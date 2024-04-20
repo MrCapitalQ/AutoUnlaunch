@@ -53,6 +53,11 @@ jobs:
         APPX_PACKAGE_DIR: ${{ github.workspace }}/Packages/
         APPX_PACKAGE_NAME: ${{ inputs.PACKAGE_NAME }}_${{ matrix.platform }}
 
+    - name: Test
+      run: dotnet test /p:EnableMsixTooling=true /p:Platform=$env:PLATFORM
+      env:
+        PLATFORM: ${{ matrix.platform }}
+
     - name: Upload MSIX Package
       uses: actions/upload-artifact@v4
       with:

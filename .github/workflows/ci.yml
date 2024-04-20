@@ -1,0 +1,15 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+
+  build:
+    name: Build
+    uses: ./.github/workflows/build.yml
+    with:
+      PACKAGE_NAME: AutoUnlaunch
+      SOLUTION_NAME: AutoUnlaunch.sln
+      PUBLISH_ARTIFACTS: false
