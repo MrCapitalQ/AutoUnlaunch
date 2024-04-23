@@ -1,0 +1,64 @@
+on:
+  workflow_call:
+    inputs:
+      PACKAGE_NAME:
+        required: true
+        type: string
+      CONFIGURATION:
+        type: string
+        default: Release
+      SOLUTION_NAME:
+        required: true
+        type: string
+      PUBLISH_ARTIFACTS:
+        type: boolean
+        default: true
+
+jobs:
+
+  build:
+    name: Build
+
+    strategy:
+      matrix:
+        platform: [x64, x86]
+
+    runs-on: windows-latest
+
+    steps:
+
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: 8.0.x
+
+    - name: Setup MSBuild
+      uses: microsoft/setup-msbuild@v2
+
+    - name: Restore
+      run: msbuild $env:SOLUTION_NAME /t:Restore /p:Configuration=$env:CONFIGURATION
+      env:
+        SOLUTION_NAME: ${{ inputs.SOLUTION_NAME }}
+        CONFIGURATION: ${{ inputs.CONFIGURATION }}
+
+    - name: Build
+      run: msbuild $env:SOLUTION_NAME /p:Configuration=$env:CONFIGURATION /p:Platform=$env:PLATFORM /p:AppxPackageDir="$env:APPX_PACKAGE_DIR" /p:AppxPackageTestDir="$($env:APPX_PACKAGE_DIR)/$($env:APPX_PACKAGE_NAME)/" /p:AppxPackageName="$env:APPX_PACKAGE_NAME" /p:GenerateAppxPackageOnBuild=true
+      env:
+        SOLUTION_NAME: ${{ inputs.SOLUTION_NAME }}
+        CONFIGURATION: ${{ inputs.CONFIGURATION }}
+        PLATFORM: ${{ matrix.platform }}
+        APPX_PACKAGE_DIR: ${{ github.workspace }}/Packages/
+        APPX_PACKAGE_NAME: ${{ inputs.PACKAGE_NAME }}_${{ matrix.platform }}
+
+    - name: Upload MSIX Package
+      uses: actions/upload-artifact@v4
+      with:
+        name: ${{ matrix.platform }} MSIX Package
+        path: |
+          ${{ github.workspace }}/Packages/**/*.msix
+          ${{ github.workspace }}/Packages/**/*.msixsym
+          !**/Dependencies/**
+      if: ${{ inputs.PUBLISH_ARTIFACTS == true }}
