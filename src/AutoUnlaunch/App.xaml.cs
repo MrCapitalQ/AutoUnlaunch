@@ -1,6 +1,7 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.UI.Xaml;
+using System.Runtime.InteropServices;
 
 namespace MrCapitalQ.AutoUnlaunch;
 
@@ -18,6 +19,8 @@ public partial class App : Application
 
     protected override void OnLaunched(LaunchActivatedEventArgs args)
     {
+        _ = SetPreferredAppMode(PreferredAppMode.AllowDark);
+
         Window = Services.GetRequiredService<MainWindow>();
         Window.Activate();
         Window.Closed += Window_Closed;
@@ -33,4 +36,16 @@ public partial class App : Application
         var hostApplicationLifetime = Services.GetRequiredService<IHostApplicationLifetime>();
         hostApplicationLifetime.StopApplication();
     }
+
+    [LibraryImport("uxtheme.dll", EntryPoint = "#135", SetLastError = true)]
+    private static partial int SetPreferredAppMode(PreferredAppMode preferredAppMode);
+
+    private enum PreferredAppMode
+    {
+        Default,
+        AllowDark,
+        ForceDark,
+        ForceLight,
+        Max
+    };
 }
