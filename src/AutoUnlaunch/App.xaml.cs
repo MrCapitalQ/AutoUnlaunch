@@ -5,11 +5,13 @@ using Microsoft.UI.Xaml;
 using Microsoft.Windows.AppLifecycle;
 using MrCapitalQ.AutoUnlaunch.Core.AppData;
 using MrCapitalQ.AutoUnlaunch.Shared;
+using System.Diagnostics.CodeAnalysis;
 using System.Runtime.InteropServices;
 using WinUIEx;
 
 namespace MrCapitalQ.AutoUnlaunch;
 
+[ExcludeFromCodeCoverage(Justification = ExcludeFromCoverageJustifications.RequiresUIThread)]
 public partial class App : Application
 {
     public App(IServiceProvider services)

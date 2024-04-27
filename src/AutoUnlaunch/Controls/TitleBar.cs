@@ -3,11 +3,14 @@ using Microsoft.UI.Windowing;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
+using MrCapitalQ.AutoUnlaunch.Shared;
+using System.Diagnostics.CodeAnalysis;
 using Windows.Foundation;
 using Windows.Graphics;
 
 namespace MrCapitalQ.AutoUnlaunch.Controls;
 
+[ExcludeFromCodeCoverage(Justification = ExcludeFromCoverageJustifications.RequiresUIThread)]
 public sealed class TitleBar : Control
 {
     public static readonly DependencyProperty IsBackButtonVisibleProperty =

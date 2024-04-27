@@ -3,11 +3,13 @@ using Microsoft.UI.Windowing;
 using Microsoft.UI.Xaml.Controls;
 using MrCapitalQ.AutoUnlaunch.Core.AppData;
 using MrCapitalQ.AutoUnlaunch.Shared;
+using System.Diagnostics.CodeAnalysis;
 using Windows.ApplicationModel;
 using WinUIEx;
 
 namespace MrCapitalQ.AutoUnlaunch;
 
+[ExcludeFromCodeCoverage(Justification = ExcludeFromCoverageJustifications.RequiresUIThread)]
 public sealed partial class MainWindow : WindowEx
 {
     private readonly ISettingsService _settingsService;
