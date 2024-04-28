@@ -1,4 +1,3 @@
-using Microsoft.UI.Xaml;
 using Windows.ApplicationModel;
 using WinUIEx;
 
@@ -12,12 +11,8 @@ public sealed partial class MainWindow : WindowEx
 
         Title = Package.Current.DisplayName;
         ExtendsContentIntoTitleBar = true;
+        PersistenceId = nameof(MainWindow);
     }
 
     public string Icon => "Assets/AppIcon.ico";
-
-    private void myButton_Click(object sender, RoutedEventArgs e)
-    {
-        myButton.Content = "Clicked";
-    }
 }
