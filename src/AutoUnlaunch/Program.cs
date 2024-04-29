@@ -17,7 +17,8 @@ var builder = Host.CreateApplicationBuilder(args);
 builder.Services.AddHostedService<WindowsAppHostedService<App>>();
 
 builder.Services.AddSingleton<App>();
-builder.Services.AddSingleton<MainWindow>();
+builder.Services.AddSingleton<LifetimeWindow>();
+builder.Services.AddTransient<MainWindow>();
 
 builder.Services.AddSingleton<SettingsPage>();
 builder.Services.AddSingleton<SettingsViewModel>();
