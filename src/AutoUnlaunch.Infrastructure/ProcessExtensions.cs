@@ -23,7 +23,7 @@ internal static partial class ProcessExtensions
     }
 
     [LibraryImport("ntdll.dll")]
-    private static partial int NtQueryInformationProcess(IntPtr processHandle,
+    private static partial int NtQueryInformationProcess(nint processHandle,
         int processInformationClass,
         ref ProcessInformation processInformation,
         int processInformationLength,
@@ -32,11 +32,11 @@ internal static partial class ProcessExtensions
     [StructLayout(LayoutKind.Sequential)]
     private struct ProcessInformation
     {
-        public IntPtr Reserved1;
-        public IntPtr PebBaseAddress;
-        public IntPtr Reserved2_0;
-        public IntPtr Reserved2_1;
-        public IntPtr UniqueProcessId;
-        public IntPtr InheritedFromUniqueProcessId;
+        public nint Reserved1;
+        public nint PebBaseAddress;
+        public nint Reserved2_0;
+        public nint Reserved2_1;
+        public nint UniqueProcessId;
+        public nint InheritedFromUniqueProcessId;
     }
 }

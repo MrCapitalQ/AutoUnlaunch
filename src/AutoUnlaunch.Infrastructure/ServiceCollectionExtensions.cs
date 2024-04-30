@@ -35,4 +35,12 @@ public static class ServiceCollectionExtensions
         services.AddProtocolLauncher();
         return services;
     }
+
+    public static IServiceCollection AddEA(this IServiceCollection services)
+    {
+        services.AddSingleton<ILauncherHandler, EALauncherHandler>();
+        services.TryAddTransient<EASettingsService>();
+        services.TryAddTransient<LauncherChildProcessChecker>();
+        return services;
+    }
 }
