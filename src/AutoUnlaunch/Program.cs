@@ -3,6 +3,8 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Windows.AppLifecycle;
 using MrCapitalQ.AutoUnlaunch;
+using MrCapitalQ.AutoUnlaunch.Core;
+using MrCapitalQ.AutoUnlaunch.Infrastructure;
 using MrCapitalQ.AutoUnlaunch.Settings;
 
 var keyInstance = AppInstance.FindOrRegisterForKey("fa1bd88a-766a-45eb-be78-e9fc27e995bf");
@@ -24,9 +26,10 @@ builder.Services.AddTransient<MainWindow>();
 builder.Services.AddSingleton<SettingsPage>();
 builder.Services.AddSingleton<SettingsViewModel>();
 
-builder.Services.AddSingleton<StartupTaskService>();
-builder.Services.AddSingleton<LocalApplicationData>();
-builder.Services.AddSingleton<SettingsService>();
+builder.Services.AddStartupTaskService();
+builder.Services.AddLocalApplicationDataStore();
+builder.Services.AddSettingsService();
+
 builder.Services.AddSingleton<IMessenger>(WeakReferenceMessenger.Default);
 
 var host = builder.Build();

@@ -1,8 +1,9 @@
-﻿using Windows.Storage;
+﻿using MrCapitalQ.AutoUnlaunch.Core.AppData;
+using Windows.Storage;
 
-namespace MrCapitalQ.AutoUnlaunch.Settings;
+namespace MrCapitalQ.AutoUnlaunch.Infrastructure;
 
-public class LocalApplicationData
+public class LocalApplicationDataStore : IApplicationDataStore
 {
     private readonly ApplicationDataContainer _localSettings = ApplicationData.Current.LocalSettings;
 

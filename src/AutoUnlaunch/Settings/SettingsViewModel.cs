@@ -1,13 +1,14 @@
 ﻿using CommunityToolkit.Mvvm.ComponentModel;
+using MrCapitalQ.AutoUnlaunch.Core.AppData;
+using MrCapitalQ.AutoUnlaunch.Core.Startup;
 using MrCapitalQ.AutoUnlaunch.Shared;
-using Windows.ApplicationModel;
 
 namespace MrCapitalQ.AutoUnlaunch.Settings;
 
 internal partial class SettingsViewModel : ObservableObject
 {
-    private readonly StartupTaskService _startupTaskService;
-    private readonly SettingsService _settingsService;
+    private readonly IStartupTaskService _startupTaskService;
+    private readonly ISettingsService _settingsService;
 
     private bool _isStartupOn;
 
@@ -20,7 +21,7 @@ internal partial class SettingsViewModel : ObservableObject
     [ObservableProperty]
     private ComboBoxOption<AppExitBehavior> _selectedExitBehavior;
 
-    public SettingsViewModel(StartupTaskService startupTaskService, SettingsService settingsService)
+    public SettingsViewModel(IStartupTaskService startupTaskService, ISettingsService settingsService)
     {
         _startupTaskService = startupTaskService;
         _settingsService = settingsService;
@@ -55,26 +56,26 @@ internal partial class SettingsViewModel : ObservableObject
         StartupSettingsText = "Start automatically in the background when you sign in";
         switch (state)
         {
-            case StartupTaskState.DisabledByUser:
+            case AppStartupState.DisabledByUser:
                 StartupSettingsText = "Startup is disabled at the system level and must be enabled using the Startup tab in Task Manager";
                 _isStartupOn = false;
                 IsStartupToggleEnabled = false;
                 break;
-            case StartupTaskState.DisabledByPolicy:
+            case AppStartupState.DisabledByPolicy:
                 StartupSettingsText = "Startup is disabled by group policy or not supported on this device";
                 _isStartupOn = false;
                 IsStartupToggleEnabled = false;
                 break;
-            case StartupTaskState.Disabled:
+            case AppStartupState.Disabled:
                 _isStartupOn = false;
                 IsStartupToggleEnabled = true;
                 break;
-            case StartupTaskState.EnabledByPolicy:
+            case AppStartupState.EnabledByPolicy:
                 StartupSettingsText = "Startup is enabled by group policy";
                 _isStartupOn = true;
                 IsStartupToggleEnabled = false;
                 break;
-            case StartupTaskState.Enabled:
+            case AppStartupState.Enabled:
                 _isStartupOn = true;
                 IsStartupToggleEnabled = true;
                 break;
