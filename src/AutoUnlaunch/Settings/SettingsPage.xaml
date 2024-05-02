@@ -44,6 +44,17 @@
                               SelectedItem="{x:Bind _viewModel.SelectedExitBehavior, Mode=TwoWay}"
                               DisplayMemberPath="Display" />
                 </toolkit:SettingsCard>
+
+                <TextBlock Style="{StaticResource SettingsSectionHeaderTextBlockStyle}"
+                           Text="About" />
+                <toolkit:SettingsCard Header="{x:Bind _viewModel.AppDisplayName}"
+                                      HeaderIcon="{ui:BitmapIcon Source='Assets/StoreLogo.png'}">
+                    <TextBlock Style="{ThemeResource CaptionTextBlockStyle}"
+                               Foreground="{ThemeResource TextFillColorSecondaryBrush}">
+                        <Run>Version</Run>
+                        <Run Text="{x:Bind _viewModel.Version}" />
+                    </TextBlock>
+                </toolkit:SettingsCard>
             </StackPanel>
         </ScrollViewer>
     </Grid>
