@@ -5,7 +5,7 @@ using Microsoft.UI.Xaml;
 using MrCapitalQ.AutoUnlaunch.Shared;
 using System.Diagnostics.CodeAnalysis;
 
-namespace MrCapitalQ.AutoUnlaunch;
+namespace MrCapitalQ.AutoUnlaunch.Hosts;
 
 [ExcludeFromCodeCoverage(Justification = ExcludeFromCoverageJustifications.RequiresUIThread)]
 internal class WindowsAppHostedService<TApplication> : IHostedService

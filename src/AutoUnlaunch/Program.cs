@@ -4,6 +4,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Windows.AppLifecycle;
 using MrCapitalQ.AutoUnlaunch;
 using MrCapitalQ.AutoUnlaunch.Core;
+using MrCapitalQ.AutoUnlaunch.Hosts;
 using MrCapitalQ.AutoUnlaunch.Infrastructure;
 using MrCapitalQ.AutoUnlaunch.Settings;
 using MrCapitalQ.AutoUnlaunch.Shared;
@@ -25,6 +26,8 @@ internal class Program
         var builder = Host.CreateApplicationBuilder(args);
 
         builder.Services.AddHostedService<WindowsAppHostedService<App>>();
+        builder.Services.AddHostedService<LauncherBackgroundService>();
+        builder.Services.AddSingleton(TimeProvider.System);
 
         builder.Services.AddSingleton<App>();
         builder.Services.AddSingleton<LifetimeWindow>();
