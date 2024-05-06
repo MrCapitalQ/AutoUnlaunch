@@ -1,7 +1,12 @@
 using CommunityToolkit.Mvvm.Messaging;
 using Microsoft.UI.Windowing;
+using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Input;
+using Microsoft.UI.Xaml.Media.Animation;
+using Microsoft.UI.Xaml.Navigation;
 using MrCapitalQ.AutoUnlaunch.Core.AppData;
+using MrCapitalQ.AutoUnlaunch.Settings;
 using MrCapitalQ.AutoUnlaunch.Shared;
 using System.Diagnostics.CodeAnalysis;
 using Windows.ApplicationModel;
@@ -21,7 +26,8 @@ public sealed partial class MainWindow : WindowEx
         PrimaryButtonText = "Yes",
         SecondaryButtonText = "No",
         CloseButtonText = "Cancel",
-        DefaultButton = ContentDialogButton.Primary
+        DefaultButton = ContentDialogButton.Primary,
+        Style = Application.Current.Resources["DefaultContentDialogStyle"] as Style
     };
 
     private bool _isDialogVisible = false;
@@ -37,6 +43,19 @@ public sealed partial class MainWindow : WindowEx
         ExtendsContentIntoTitleBar = true;
         PersistenceId = nameof(MainWindow);
         AppWindow.Closing += AppWindow_Closing;
+
+        RootFrame.Navigated += RootFrame_Navigated;
+        RootFrame.Navigate(typeof(SettingsPage));
+
+        messenger.Register<MainWindow, NavigateMessage>(this, (r, m) =>
+        {
+            NavigationTransitionInfo? transitionInfo = m switch
+            {
+                SlideNavigateMessage slideNavigateMessage => new SlideNavigationTransitionInfo { Effect = slideNavigateMessage.SlideEffect },
+                _ => null
+            };
+            r.RootFrame.Navigate(m.SourcePageType, m.Parameter, transitionInfo);
+        });
     }
 
     private async void AppWindow_Closing(AppWindow sender, AppWindowClosingEventArgs args)
@@ -82,4 +101,48 @@ public sealed partial class MainWindow : WindowEx
     }
 
     public string Icon => "Assets/AppIcon.ico";
+
+    private void GoBack()
+    {
+        if (RootFrame.CanGoBack)
+            RootFrame.GoBack();
+    }
+
+    private void GoForward()
+    {
+        if (RootFrame.CanGoForward)
+            RootFrame.GoForward();
+    }
+
+    private void TitleBar_BackRequested(object sender, EventArgs e) => GoBack();
+
+    private void Grid_PointerPressed(object sender, PointerRoutedEventArgs e)
+    {
+        var pointerProperties = e.GetCurrentPoint(sender as UIElement).Properties;
+        if (pointerProperties.IsXButton1Pressed)
+        {
+            GoBack();
+            e.Handled = true;
+        }
+        else if (pointerProperties.IsXButton2Pressed)
+        {
+            GoForward();
+            e.Handled = true;
+        }
+    }
+
+    private void BackKeyboardAccelerator_Invoked(KeyboardAccelerator sender, KeyboardAcceleratorInvokedEventArgs args)
+    {
+        GoBack();
+        args.Handled = true;
+    }
+
+    private void ForwardKeyboardAccelerator_Invoked(KeyboardAccelerator sender, KeyboardAcceleratorInvokedEventArgs args)
+    {
+        GoForward();
+        args.Handled = true;
+    }
+
+    private void RootFrame_Navigated(object sender, NavigationEventArgs e)
+        => TitleBar.IsBackButtonVisible = RootFrame.CanGoBack;
 }
