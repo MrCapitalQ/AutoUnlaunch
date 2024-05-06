@@ -99,6 +99,32 @@
                                               Command="{x:Bind _viewModel.EASettings.MoreCommand}" />
                     </toolkit:SettingsExpander.Items>
                 </toolkit:SettingsExpander>
+                <toolkit:SettingsExpander Header="GOG Galaxy"
+                                          Description="Automatically stop GOG Galaxy when a game is no longer running">
+                    <toolkit:SettingsExpander.HeaderIcon>
+                        <PathIcon Data="{StaticResource GogIconPathData}"
+                                  Style="{StaticResource SettingsCardPathIconStyle}" />
+                    </toolkit:SettingsExpander.HeaderIcon>
+                    <ToggleSwitch IsOn="{x:Bind _viewModel.GogSettings.IsEnabled, Mode=TwoWay}" />
+                    <toolkit:SettingsExpander.Items>
+                        <toolkit:SettingsCard Header="Delay after game closes"
+                                              IsEnabled="{x:Bind _viewModel.GogSettings.IsEnabled, Mode=OneWay}">
+                            <ComboBox ItemsSource="{x:Bind _viewModel.GogSettings.DelayOptions}"
+                                      SelectedItem="{x:Bind _viewModel.GogSettings.SelectedDelay, Mode=TwoWay}"
+                                      DisplayMemberPath="Display" />
+                        </toolkit:SettingsCard>
+                        <toolkit:SettingsCard Header="Launcher stop method"
+                                              IsEnabled="{x:Bind _viewModel.GogSettings.IsEnabled, Mode=OneWay}">
+                            <ComboBox ItemsSource="{x:Bind _viewModel.GogSettings.StopMethodOptions}"
+                                      SelectedItem="{x:Bind _viewModel.GogSettings.SelectedStopMethod, Mode=TwoWay}"
+                                      DisplayMemberPath="Display" />
+                        </toolkit:SettingsCard>
+                        <toolkit:SettingsCard Header="Tips"
+                                              IsEnabled="{x:Bind _viewModel.GogSettings.IsEnabled, Mode=OneWay}"
+                                              IsClickEnabled="True"
+                                              Command="{x:Bind _viewModel.GogSettings.MoreCommand}" />
+                    </toolkit:SettingsExpander.Items>
+                </toolkit:SettingsExpander>
 
                 <TextBlock Style="{StaticResource SettingsSectionHeaderTextBlockStyle}"
                            Text="About" />

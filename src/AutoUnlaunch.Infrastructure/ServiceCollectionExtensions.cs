@@ -43,4 +43,12 @@ public static class ServiceCollectionExtensions
         services.TryAddTransient<LauncherChildProcessChecker>();
         return services;
     }
+
+    public static IServiceCollection AddGog(this IServiceCollection services)
+    {
+        services.AddSingleton<ILauncherHandler, GogLauncherHandler>();
+        services.TryAddTransient<GogSettingsService>();
+        services.TryAddTransient<LauncherChildProcessChecker>();
+        return services;
+    }
 }
