@@ -46,6 +46,35 @@
                 </toolkit:SettingsCard>
 
                 <TextBlock Style="{StaticResource SettingsSectionHeaderTextBlockStyle}"
+                           Text="Launchers" />
+                <toolkit:SettingsExpander Header="Steam"
+                                          Description="Automatically stop Steam launcher when a game is no longer running">
+                    <toolkit:SettingsExpander.HeaderIcon>
+                        <PathIcon Data="{StaticResource SteamIconPathData}"
+                                  Style="{StaticResource SettingsCardPathIconStyle}" />
+                    </toolkit:SettingsExpander.HeaderIcon>
+                    <ToggleSwitch IsOn="{x:Bind _viewModel.SteamSettings.IsEnabled, Mode=TwoWay}" />
+                    <toolkit:SettingsExpander.Items>
+                        <toolkit:SettingsCard Header="Delay after game closes"
+                                              IsEnabled="{x:Bind _viewModel.SteamSettings.IsEnabled, Mode=OneWay}">
+                            <ComboBox ItemsSource="{x:Bind _viewModel.SteamSettings.DelayOptions}"
+                                      SelectedItem="{x:Bind _viewModel.SteamSettings.SelectedDelay, Mode=TwoWay}"
+                                      DisplayMemberPath="Display" />
+                        </toolkit:SettingsCard>
+                        <toolkit:SettingsCard Header="Launcher stop method"
+                                              IsEnabled="{x:Bind _viewModel.SteamSettings.IsEnabled, Mode=OneWay}">
+                            <ComboBox ItemsSource="{x:Bind _viewModel.SteamSettings.StopMethodOptions}"
+                                      SelectedItem="{x:Bind _viewModel.SteamSettings.SelectedStopMethod, Mode=TwoWay}"
+                                      DisplayMemberPath="Display" />
+                        </toolkit:SettingsCard>
+                        <toolkit:SettingsCard Header="More options and tips"
+                                              IsEnabled="{x:Bind _viewModel.SteamSettings.IsEnabled, Mode=OneWay}"
+                                              IsClickEnabled="True"
+                                              Command="{x:Bind _viewModel.SteamSettings.MoreCommand}" />
+                    </toolkit:SettingsExpander.Items>
+                </toolkit:SettingsExpander>
+
+                <TextBlock Style="{StaticResource SettingsSectionHeaderTextBlockStyle}"
                            Text="About" />
                 <toolkit:SettingsCard Header="{x:Bind _viewModel.AppDisplayName}"
                                       HeaderIcon="{ui:BitmapIcon Source='Assets/StoreLogo.png'}">

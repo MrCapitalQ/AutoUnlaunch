@@ -7,6 +7,7 @@ using MrCapitalQ.AutoUnlaunch.Core;
 using MrCapitalQ.AutoUnlaunch.Hosts;
 using MrCapitalQ.AutoUnlaunch.Infrastructure;
 using MrCapitalQ.AutoUnlaunch.Settings;
+using MrCapitalQ.AutoUnlaunch.Settings.Launchers.Steam;
 using MrCapitalQ.AutoUnlaunch.Shared;
 using System.Diagnostics.CodeAnalysis;
 
@@ -35,10 +36,13 @@ internal class Program
 
         builder.Services.AddSingleton<SettingsPage>();
         builder.Services.AddSingleton<SettingsViewModel>();
+        builder.Services.AddSingleton<ISteamSettingsViewModel, SteamSettingsViewModel>();
 
         builder.Services.AddStartupTaskService();
         builder.Services.AddLocalApplicationDataStore();
         builder.Services.AddSettingsService();
+        builder.Services.AddProtocolLauncher();
+        builder.Services.AddSteam();
 
         builder.Services.AddSingleton<IMessenger>(WeakReferenceMessenger.Default);
         builder.Services.AddTransient<IPackageInfo, PackageInfo>();

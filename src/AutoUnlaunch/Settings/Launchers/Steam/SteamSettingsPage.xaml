@@ -1,0 +1,141 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Page x:Class="MrCapitalQ.AutoUnlaunch.Settings.Launchers.Steam.SteamSettingsPage"
+      xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+      xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+      xmlns:local="using:MrCapitalQ.AutoUnlaunch.Settings.Launchers.Steam"
+      xmlns:toolkit="using:CommunityToolkit.WinUI.Controls"
+      xmlns:ui="using:CommunityToolkit.WinUI"
+      xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+      xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+      mc:Ignorable="d">
+
+    <Page.Resources>
+        <Thickness x:Key="IndentedThickness">16,0,0,0</Thickness>
+        <Style x:Key="CodeTextBlockStyle"
+               TargetType="TextBlock">
+            <Setter Property="FontFamily"
+                    Value="Consolas" />
+            <Setter Property="IsTextSelectionEnabled"
+                    Value="True" />
+            <Setter Property="VerticalAlignment"
+                    Value="Center" />
+        </Style>
+        <Style x:Key="CodeTextBlockContainerStyle"
+               TargetType="Border">
+            <Setter Property="Background"
+                    Value="{ThemeResource AcrylicBackgroundFillColorBaseBrush}" />
+            <Setter Property="CornerRadius"
+                    Value="{ThemeResource ControlCornerRadius}" />
+            <Setter Property="HorizontalAlignment"
+                    Value="Left" />
+            <Setter Property="MinHeight"
+                    Value="20" />
+            <Setter Property="Padding"
+                    Value="4,0" />
+        </Style>
+    </Page.Resources>
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+        <TextBlock Text="Steam"
+                   Style="{ThemeResource TitleTextBlockStyle}"
+                   MaxWidth="{StaticResource SettingsCardMaxWidth}"
+                   Margin="16,0,16,16" />
+        <ScrollViewer VerticalAlignment="Top"
+                      Grid.Row="1">
+            <StackPanel HorizontalAlignment="Stretch"
+                        Spacing="{StaticResource SettingsCardSpacing}"
+                        Margin="16,0,16,16">
+
+                <StackPanel.ChildrenTransitions>
+                    <TransitionCollection>
+                        <EntranceThemeTransition IsStaggeringEnabled="True" />
+                        <RepositionThemeTransition IsStaggeringEnabled="False" />
+                    </TransitionCollection>
+                </StackPanel.ChildrenTransitions>
+
+                <toolkit:SettingsExpander Header="Steam visibility"
+                                          HeaderIcon="{ui:FontIcon Glyph=&#xED1A;}"
+                                          Description="Choose if Steam should be hidden at certain times"
+                                          IsExpanded="True">
+                    <toolkit:SettingsExpander.Items>
+                        <toolkit:SettingsCard>
+                            <toolkit:SettingsCard.Header>
+                                <CheckBox IsChecked="{x:Bind _viewModel.HidesShutdownScreen, Mode=TwoWay}">
+                                    <TextBlock>Hide Steam after requesting a shutdown</TextBlock>
+                                </CheckBox>
+                            </toolkit:SettingsCard.Header>
+                        </toolkit:SettingsCard>
+                        <toolkit:SettingsCard>
+                            <toolkit:SettingsCard.Header>
+                                <CheckBox IsChecked="{x:Bind _viewModel.HidesOnActivityStart, Mode=TwoWay}">
+                                    <TextBlock>Hide Steam when a game starts</TextBlock>
+                                </CheckBox>
+                            </toolkit:SettingsCard.Header>
+                        </toolkit:SettingsCard>
+                        <toolkit:SettingsCard>
+                            <toolkit:SettingsCard.Header>
+                                <CheckBox IsChecked="{x:Bind _viewModel.HidesOnActivityEnd, Mode=TwoWay}">
+                                    <TextBlock>Hide Steam when a game ends</TextBlock>
+                                </CheckBox>
+                            </toolkit:SettingsCard.Header>
+                        </toolkit:SettingsCard>
+                    </toolkit:SettingsExpander.Items>
+                </toolkit:SettingsExpander>
+
+                <toolkit:SettingsExpander Header="Tips"
+                                          HeaderIcon="{ui:FontIcon Glyph=&#xE82F;}"
+                                          IsExpanded="True">
+                    <toolkit:SettingsExpander.Items>
+                        <toolkit:SettingsCard Header="Configure Steam to not run at startup"
+                                              Description="Disable the option under &quot;Steam&quot; > &quot;Settings&quot; > &quot;Interface&quot; > &quot;Run Steam when my computer starts&quot;"
+                                              ActionIcon="{ui:FontIcon Glyph=&#xE8A7;}"
+                                              ActionIconToolTip="Open in Steam settings page"
+                                              IsClickEnabled="True"
+                                              Command="{x:Bind _viewModel.OpenSteamSettingsCommand}" />
+                        <toolkit:SettingsCard Header="Adjust game shortcuts to not show Steam">
+                            <toolkit:SettingsCard.Description>
+                                <StackPanel>
+                                    <TextBlock>
+                                        <Bold>Step 1</Bold>
+                                    </TextBlock>
+                                    <TextBlock>Locate a game's shortcut in File Explorer. This can usually done from the Start menu by right clicking and choosing "Open File Location" or "More" > "Open File Location."</TextBlock>
+
+                                    <TextBlock />
+
+                                    <TextBlock>
+                                        <Bold>Step 2</Bold>
+                                    </TextBlock>
+                                    <TextBlock>Right click the shortcut, choose "Properties", and in the "Web Document" tab, append URL value with the argument to start Steam silently when launching the game.</TextBlock>
+
+                                    <TextBlock />
+
+                                    <TextBlock Margin="{StaticResource IndentedThickness}">For example, consider a shortcut with the following URL value.</TextBlock>
+                                    <Border Style="{ThemeResource CodeTextBlockContainerStyle}"
+                                            Margin="{StaticResource IndentedThickness}">
+                                        <TextBlock Style="{StaticResource CodeTextBlockStyle}">
+                                            steam://rungameid/XXXXX
+                                        </TextBlock>
+                                    </Border>
+
+                                    <TextBlock />
+
+                                    <TextBlock Margin="{StaticResource IndentedThickness}">For example, consider a shortcut with the following URL value.</TextBlock>
+                                    <Border Style="{ThemeResource CodeTextBlockContainerStyle}"
+                                            Margin="{StaticResource IndentedThickness}">
+                                        <TextBlock Style="{StaticResource CodeTextBlockStyle}">
+                                            steam://rungameid/XXXXX" -silent
+                                        </TextBlock>
+                                    </Border>
+                                </StackPanel>
+                            </toolkit:SettingsCard.Description>
+                        </toolkit:SettingsCard>
+                    </toolkit:SettingsExpander.Items>
+                </toolkit:SettingsExpander>
+            </StackPanel>
+        </ScrollViewer>
+    </Grid>
+</Page>
