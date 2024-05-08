@@ -1,6 +1,7 @@
 ﻿using MrCapitalQ.AutoUnlaunch.Core.AppData;
 using MrCapitalQ.AutoUnlaunch.Core.Startup;
 using MrCapitalQ.AutoUnlaunch.Settings;
+using MrCapitalQ.AutoUnlaunch.Settings.Launchers.EA;
 using MrCapitalQ.AutoUnlaunch.Settings.Launchers.Steam;
 using MrCapitalQ.AutoUnlaunch.Shared;
 using Windows.ApplicationModel;
@@ -13,6 +14,7 @@ public class SettingsViewModelTests
     private readonly ISettingsService _settingsService;
     private readonly IPackageInfo _packageInfo;
     private readonly ISteamSettingsViewModel _steamSettingsViewModel;
+    private readonly IEASettingsViewModel _eaSettingsViewModel;
 
     private readonly SettingsViewModel _viewModel;
 
@@ -22,11 +24,13 @@ public class SettingsViewModelTests
         _settingsService = Substitute.For<ISettingsService>();
         _packageInfo = Substitute.For<IPackageInfo>();
         _steamSettingsViewModel = Substitute.For<ISteamSettingsViewModel>();
+        _eaSettingsViewModel = Substitute.For<IEASettingsViewModel>();
 
         _viewModel = new(_startupTaskService,
             _settingsService,
             _packageInfo,
-            _steamSettingsViewModel);
+            _steamSettingsViewModel,
+            _eaSettingsViewModel);
     }
 
     [Fact]
@@ -38,7 +42,8 @@ public class SettingsViewModelTests
         var viewModel = new SettingsViewModel(_startupTaskService,
             _settingsService,
             _packageInfo,
-            _steamSettingsViewModel);
+            _steamSettingsViewModel,
+            _eaSettingsViewModel);
 
         Assert.Equal(expected, viewModel.SelectedExitBehavior.Value);
     }
@@ -52,7 +57,8 @@ public class SettingsViewModelTests
         var viewModel = new SettingsViewModel(_startupTaskService,
             _settingsService,
             _packageInfo,
-            _steamSettingsViewModel);
+            _steamSettingsViewModel,
+            _eaSettingsViewModel);
 
         Assert.Equal(expected, viewModel.SelectedExitBehavior.Value);
     }
@@ -67,7 +73,8 @@ public class SettingsViewModelTests
         var viewModel = new SettingsViewModel(_startupTaskService,
             _settingsService,
             _packageInfo,
-            _steamSettingsViewModel);
+            _steamSettingsViewModel,
+            _eaSettingsViewModel);
 
         Assert.Equal(expectedAppDisplayName, viewModel.AppDisplayName);
         Assert.Equal("1.2.3", viewModel.Version);
@@ -77,6 +84,7 @@ public class SettingsViewModelTests
     public void Ctor_SetsLauncherViewModelProperties()
     {
         Assert.Equal(_steamSettingsViewModel, _viewModel.SteamSettings);
+        Assert.Equal(_eaSettingsViewModel, _viewModel.EASettings);
     }
 
     [Fact]
@@ -105,7 +113,8 @@ public class SettingsViewModelTests
         var viewModel = new SettingsViewModel(_startupTaskService,
             _settingsService,
             _packageInfo,
-            _steamSettingsViewModel);
+            _steamSettingsViewModel,
+            _eaSettingsViewModel);
 
         Assert.Equal(expectedIsStartupOn, viewModel.IsStartupOn);
         Assert.Equal(expectedIsStartupToggleEnabled, viewModel.IsStartupToggleEnabled);

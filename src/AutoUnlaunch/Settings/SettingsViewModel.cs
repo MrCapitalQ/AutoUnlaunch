@@ -2,6 +2,7 @@
 using CommunityToolkit.WinUI.Helpers;
 using MrCapitalQ.AutoUnlaunch.Core.AppData;
 using MrCapitalQ.AutoUnlaunch.Core.Startup;
+using MrCapitalQ.AutoUnlaunch.Settings.Launchers.EA;
 using MrCapitalQ.AutoUnlaunch.Settings.Launchers.Steam;
 using MrCapitalQ.AutoUnlaunch.Shared;
 
@@ -26,11 +27,13 @@ internal partial class SettingsViewModel : ObservableObject
     public SettingsViewModel(IStartupTaskService startupTaskService,
         ISettingsService settingsService,
         IPackageInfo packageInfo,
-        ISteamSettingsViewModel steamSettingsViewModel)
+        ISteamSettingsViewModel steamSettingsViewModel,
+        IEASettingsViewModel eaSettingsViewModel)
     {
         _startupTaskService = startupTaskService;
         _settingsService = settingsService;
         SteamSettings = steamSettingsViewModel;
+        EASettings = eaSettingsViewModel;
 
         UpdateStartupState();
         SelectedExitBehavior = ExitBehaviorOptions.FirstOrDefault(x => x.Value == _settingsService.GetAppExitBehavior())
@@ -56,6 +59,7 @@ internal partial class SettingsViewModel : ObservableObject
     public string Version { get; }
 
     public ISteamSettingsViewModel SteamSettings { get; }
+    public IEASettingsViewModel EASettings { get; }
 
     private async void UpdateStartupState(bool? isEnabled = null)
     {

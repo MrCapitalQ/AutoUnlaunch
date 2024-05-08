@@ -73,6 +73,32 @@
                                               Command="{x:Bind _viewModel.SteamSettings.MoreCommand}" />
                     </toolkit:SettingsExpander.Items>
                 </toolkit:SettingsExpander>
+                <toolkit:SettingsExpander Header="EA"
+                                          Description="Automatically stop EA launcher when a game is no longer running">
+                    <toolkit:SettingsExpander.HeaderIcon>
+                        <PathIcon Data="{StaticResource EAIconPathData}"
+                                  Style="{StaticResource SettingsCardPathIconStyle}" />
+                    </toolkit:SettingsExpander.HeaderIcon>
+                    <ToggleSwitch IsOn="{x:Bind _viewModel.EASettings.IsEnabled, Mode=TwoWay}" />
+                    <toolkit:SettingsExpander.Items>
+                        <toolkit:SettingsCard Header="Delay after game closes"
+                                              IsEnabled="{x:Bind _viewModel.EASettings.IsEnabled, Mode=OneWay}">
+                            <ComboBox ItemsSource="{x:Bind _viewModel.EASettings.DelayOptions}"
+                                      SelectedItem="{x:Bind _viewModel.EASettings.SelectedDelay, Mode=TwoWay}"
+                                      DisplayMemberPath="Display" />
+                        </toolkit:SettingsCard>
+                        <toolkit:SettingsCard Header="Launcher stop method"
+                                              IsEnabled="{x:Bind _viewModel.EASettings.IsEnabled, Mode=OneWay}">
+                            <ComboBox ItemsSource="{x:Bind _viewModel.EASettings.StopMethodOptions}"
+                                      SelectedItem="{x:Bind _viewModel.EASettings.SelectedStopMethod, Mode=TwoWay}"
+                                      DisplayMemberPath="Display" />
+                        </toolkit:SettingsCard>
+                        <toolkit:SettingsCard Header="More options and tips"
+                                              IsEnabled="{x:Bind _viewModel.EASettings.IsEnabled, Mode=OneWay}"
+                                              IsClickEnabled="True"
+                                              Command="{x:Bind _viewModel.EASettings.MoreCommand}" />
+                    </toolkit:SettingsExpander.Items>
+                </toolkit:SettingsExpander>
 
                 <TextBlock Style="{StaticResource SettingsSectionHeaderTextBlockStyle}"
                            Text="About" />
