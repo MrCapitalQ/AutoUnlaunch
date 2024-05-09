@@ -2,61 +2,59 @@
 using Microsoft.UI.Xaml.Media.Animation;
 using MrCapitalQ.AutoUnlaunch.Core;
 using MrCapitalQ.AutoUnlaunch.Core.AppData;
-using MrCapitalQ.AutoUnlaunch.Settings.Launchers.EA;
+using MrCapitalQ.AutoUnlaunch.Settings.Launchers.Gog;
 using MrCapitalQ.AutoUnlaunch.Shared;
 
-namespace MrCapitalQ.AutoUnlaunch.Tests.Settings.Launchers.EA;
+namespace MrCapitalQ.AutoUnlaunch.Tests.Settings.Launchers.Gog;
 
-public class EASettingsViewModelTests
+public class GogSettingsViewModelTests
 {
     private readonly IApplicationDataStore _applicationDataStore;
     private readonly IMessenger _messenger;
     private readonly IProtocolLauncher _protocolLauncher;
 
-    private readonly EASettingsViewModel _viewModel;
+    private readonly GogSettingsViewModel _viewModel;
 
-    public EASettingsViewModelTests()
+    public GogSettingsViewModelTests()
     {
         _applicationDataStore = Substitute.For<IApplicationDataStore>();
         _messenger = Substitute.For<IMessenger>();
         _protocolLauncher = Substitute.For<IProtocolLauncher>();
 
-        _viewModel = new(new EASettingsService(_applicationDataStore), _messenger, _protocolLauncher);
+        _viewModel = new(new GogSettingsService(_applicationDataStore), _messenger, _protocolLauncher);
     }
 
     [Fact]
     public void Ctor_WithSavedSettings_InitializesFromSettings()
     {
         var expectedIsEnabled = false;
-        _applicationDataStore.GetValue("EA_IsEnabled").Returns(expectedIsEnabled);
+        _applicationDataStore.GetValue("GOG_IsEnabled").Returns(expectedIsEnabled);
         var expectedDelay = 15;
-        _applicationDataStore.GetValue("EA_StopDelay").Returns(expectedDelay);
-        var expectedStopMethod = LauncherStopMethod.CloseMainWindow;
-        _applicationDataStore.GetValue("EA_StopMethod").Returns((int)expectedStopMethod);
+        _applicationDataStore.GetValue("GOG_StopDelay").Returns(expectedDelay);
+        var expectedStopMethod = LauncherStopMethod.RequestShutdown;
+        _applicationDataStore.GetValue("GOG_StopMethod").Returns((int)expectedStopMethod);
         var expectedMinimizeSetting = true;
-        _applicationDataStore.GetValue("EA_MinimizesOnActivityEnd").Returns(expectedMinimizeSetting);
+        _applicationDataStore.GetValue("GOG_MinimizesOnActivityEnd").Returns(expectedMinimizeSetting);
 
-        var viewModel = new EASettingsViewModel(new EASettingsService(_applicationDataStore),
+        var viewModel = new GogSettingsViewModel(new GogSettingsService(_applicationDataStore),
             _messenger,
             _protocolLauncher);
 
         Assert.Equal(expectedIsEnabled, viewModel.IsEnabled);
         Assert.Equal(expectedDelay, viewModel.SelectedDelay.Value);
         Assert.Equal(expectedStopMethod, viewModel.SelectedStopMethod.Value);
-        Assert.Equal(expectedMinimizeSetting, viewModel.MinimizesOnActivityEnd);
     }
 
     [Fact]
     public void Ctor_NoSavedSettings_InitializesWithDefaults()
     {
-        var viewModel = new EASettingsViewModel(new EASettingsService(_applicationDataStore),
+        var viewModel = new GogSettingsViewModel(new GogSettingsService(_applicationDataStore),
             _messenger,
             _protocolLauncher);
 
         Assert.True(viewModel.IsEnabled);
         Assert.Equal(5, viewModel.SelectedDelay.Value);
-        Assert.Equal(LauncherStopMethod.CloseMainWindow, viewModel.SelectedStopMethod.Value);
-        Assert.False(viewModel.MinimizesOnActivityEnd);
+        Assert.Equal(LauncherStopMethod.RequestShutdown, viewModel.SelectedStopMethod.Value);
     }
 
     [Fact]
@@ -72,7 +70,7 @@ public class EASettingsViewModelTests
     [Fact]
     public void GetStopMethodOptions_ReturnsApplicableOptions()
     {
-        List<LauncherStopMethod> expected = [LauncherStopMethod.CloseMainWindow, LauncherStopMethod.KillProcess];
+        List<LauncherStopMethod> expected = [LauncherStopMethod.RequestShutdown, LauncherStopMethod.KillProcess];
 
         var actual = _viewModel.StopMethodOptions;
 
@@ -88,7 +86,7 @@ public class EASettingsViewModelTests
         _viewModel.IsEnabled = expected;
 
         Assert.Equal(expected, _viewModel.IsEnabled);
-        _applicationDataStore.Received(1).SetValue("EA_IsEnabled", expected);
+        _applicationDataStore.Received(1).SetValue("GOG_IsEnabled", expected);
     }
 
     [Fact]
@@ -100,7 +98,7 @@ public class EASettingsViewModelTests
         _viewModel.SelectedDelay = expected;
 
         Assert.Equal(expected, _viewModel.SelectedDelay);
-        _applicationDataStore.Received(1).SetValue("EA_StopDelay", expected.Value);
+        _applicationDataStore.Received(1).SetValue("GOG_StopDelay", expected.Value);
     }
 
     [Fact]
@@ -112,25 +110,13 @@ public class EASettingsViewModelTests
         _viewModel.SelectedStopMethod = expected;
 
         Assert.Equal(expected, _viewModel.SelectedStopMethod);
-        _applicationDataStore.Received(1).SetValue("EA_StopMethod", (int)expected.Value);
-    }
-
-    [Fact]
-    public void SetMinimizesOnActivityEnd_SavesSetting()
-    {
-        _applicationDataStore.ClearReceivedCalls();
-        var expected = true;
-
-        _viewModel.MinimizesOnActivityEnd = expected;
-
-        Assert.Equal(expected, _viewModel.IsEnabled);
-        _applicationDataStore.Received(1).SetValue("EA_MinimizesOnActivityEnd", expected);
+        _applicationDataStore.Received(1).SetValue("GOG_StopMethod", (int)expected.Value);
     }
 
     [Fact]
     public void MoreCommand_SendsNavigateMessage()
     {
-        var navigateMessage = new SlideNavigateMessage(typeof(EASettingsPage), SlideNavigationTransitionEffect.FromRight);
+        var navigateMessage = new SlideNavigateMessage(typeof(GogSettingsPage), SlideNavigationTransitionEffect.FromRight);
 
         _viewModel.MoreCommand.Execute(null);
 
@@ -138,10 +124,10 @@ public class EASettingsViewModelTests
     }
 
     [Fact]
-    public async Task OpenEACommand_SendsLaunchesUriProtocol()
+    public async Task OpenGogGalaxyCommand_SendsLaunchesUriProtocol()
     {
-        await _viewModel.OpenEACommand.ExecuteAsync(null);
+        await _viewModel.OpenGogGalaxyCommand.ExecuteAsync(null);
 
-        await _protocolLauncher.Received(1).LaunchUriAsync(new Uri("origin2://"));
+        await _protocolLauncher.Received(1).LaunchUriAsync(new Uri("goggalaxy://"));
     }
 }

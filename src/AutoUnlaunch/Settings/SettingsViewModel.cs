@@ -3,6 +3,7 @@ using CommunityToolkit.WinUI.Helpers;
 using MrCapitalQ.AutoUnlaunch.Core.AppData;
 using MrCapitalQ.AutoUnlaunch.Core.Startup;
 using MrCapitalQ.AutoUnlaunch.Settings.Launchers.EA;
+using MrCapitalQ.AutoUnlaunch.Settings.Launchers.Gog;
 using MrCapitalQ.AutoUnlaunch.Settings.Launchers.Steam;
 using MrCapitalQ.AutoUnlaunch.Shared;
 
@@ -28,12 +29,14 @@ internal partial class SettingsViewModel : ObservableObject
         ISettingsService settingsService,
         IPackageInfo packageInfo,
         ISteamSettingsViewModel steamSettingsViewModel,
-        IEASettingsViewModel eaSettingsViewModel)
+        IEASettingsViewModel eaSettingsViewModel,
+        IGogSettingsViewModel gogSettingsViewModel)
     {
         _startupTaskService = startupTaskService;
         _settingsService = settingsService;
         SteamSettings = steamSettingsViewModel;
         EASettings = eaSettingsViewModel;
+        GogSettings = gogSettingsViewModel;
 
         UpdateStartupState();
         SelectedExitBehavior = ExitBehaviorOptions.FirstOrDefault(x => x.Value == _settingsService.GetAppExitBehavior())
@@ -60,6 +63,7 @@ internal partial class SettingsViewModel : ObservableObject
 
     public ISteamSettingsViewModel SteamSettings { get; }
     public IEASettingsViewModel EASettings { get; }
+    public IGogSettingsViewModel GogSettings { get; }
 
     private async void UpdateStartupState(bool? isEnabled = null)
     {

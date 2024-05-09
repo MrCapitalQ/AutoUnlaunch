@@ -2,6 +2,7 @@
 using MrCapitalQ.AutoUnlaunch.Core.Startup;
 using MrCapitalQ.AutoUnlaunch.Settings;
 using MrCapitalQ.AutoUnlaunch.Settings.Launchers.EA;
+using MrCapitalQ.AutoUnlaunch.Settings.Launchers.Gog;
 using MrCapitalQ.AutoUnlaunch.Settings.Launchers.Steam;
 using MrCapitalQ.AutoUnlaunch.Shared;
 using Windows.ApplicationModel;
@@ -15,6 +16,7 @@ public class SettingsViewModelTests
     private readonly IPackageInfo _packageInfo;
     private readonly ISteamSettingsViewModel _steamSettingsViewModel;
     private readonly IEASettingsViewModel _eaSettingsViewModel;
+    private readonly IGogSettingsViewModel _gogSettingsViewModel;
 
     private readonly SettingsViewModel _viewModel;
 
@@ -25,12 +27,14 @@ public class SettingsViewModelTests
         _packageInfo = Substitute.For<IPackageInfo>();
         _steamSettingsViewModel = Substitute.For<ISteamSettingsViewModel>();
         _eaSettingsViewModel = Substitute.For<IEASettingsViewModel>();
+        _gogSettingsViewModel = Substitute.For<IGogSettingsViewModel>();
 
         _viewModel = new(_startupTaskService,
             _settingsService,
             _packageInfo,
             _steamSettingsViewModel,
-            _eaSettingsViewModel);
+            _eaSettingsViewModel,
+            _gogSettingsViewModel);
     }
 
     [Fact]
@@ -43,7 +47,8 @@ public class SettingsViewModelTests
             _settingsService,
             _packageInfo,
             _steamSettingsViewModel,
-            _eaSettingsViewModel);
+            _eaSettingsViewModel,
+            _gogSettingsViewModel);
 
         Assert.Equal(expected, viewModel.SelectedExitBehavior.Value);
     }
@@ -58,7 +63,8 @@ public class SettingsViewModelTests
             _settingsService,
             _packageInfo,
             _steamSettingsViewModel,
-            _eaSettingsViewModel);
+            _eaSettingsViewModel,
+            _gogSettingsViewModel);
 
         Assert.Equal(expected, viewModel.SelectedExitBehavior.Value);
     }
@@ -74,7 +80,8 @@ public class SettingsViewModelTests
             _settingsService,
             _packageInfo,
             _steamSettingsViewModel,
-            _eaSettingsViewModel);
+            _eaSettingsViewModel,
+            _gogSettingsViewModel);
 
         Assert.Equal(expectedAppDisplayName, viewModel.AppDisplayName);
         Assert.Equal("1.2.3", viewModel.Version);
@@ -85,6 +92,7 @@ public class SettingsViewModelTests
     {
         Assert.Equal(_steamSettingsViewModel, _viewModel.SteamSettings);
         Assert.Equal(_eaSettingsViewModel, _viewModel.EASettings);
+        Assert.Equal(_gogSettingsViewModel, _viewModel.GogSettings);
     }
 
     [Fact]
@@ -114,7 +122,8 @@ public class SettingsViewModelTests
             _settingsService,
             _packageInfo,
             _steamSettingsViewModel,
-            _eaSettingsViewModel);
+            _eaSettingsViewModel,
+            _gogSettingsViewModel);
 
         Assert.Equal(expectedIsStartupOn, viewModel.IsStartupOn);
         Assert.Equal(expectedIsStartupToggleEnabled, viewModel.IsStartupToggleEnabled);
