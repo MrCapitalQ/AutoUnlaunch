@@ -1,0 +1,25 @@
+name: Prod Release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+      - '!v*.*.*-*'
+
+jobs:
+
+  build:
+    name: Build
+    uses: ./.github/workflows/build.yml
+    with:
+      PACKAGE_NAME: AutoUnlaunch
+      SOLUTION_NAME: AutoUnlaunch.sln
+
+  publish:
+    name: Publish
+    needs: build
+    uses: ./.github/workflows/publish.yml
+    with:
+      PACKAGE_NAME: AutoUnlaunch # Must match PACKAGE_NAME from Build job
+      ENVIRONMENT: Prod
+    secrets: inherit
