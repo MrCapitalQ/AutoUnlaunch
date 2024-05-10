@@ -8,6 +8,7 @@ using MrCapitalQ.AutoUnlaunch.Hosts;
 using MrCapitalQ.AutoUnlaunch.Infrastructure;
 using MrCapitalQ.AutoUnlaunch.Settings;
 using MrCapitalQ.AutoUnlaunch.Settings.Launchers.EA;
+using MrCapitalQ.AutoUnlaunch.Settings.Launchers.Epic;
 using MrCapitalQ.AutoUnlaunch.Settings.Launchers.Gog;
 using MrCapitalQ.AutoUnlaunch.Settings.Launchers.Steam;
 using MrCapitalQ.AutoUnlaunch.Shared;
@@ -41,6 +42,7 @@ internal class Program
         builder.Services.AddSingleton<ISteamSettingsViewModel, SteamSettingsViewModel>();
         builder.Services.AddSingleton<IEASettingsViewModel, EASettingsViewModel>();
         builder.Services.AddSingleton<IGogSettingsViewModel, GogSettingsViewModel>();
+        builder.Services.AddSingleton<IEpicSettingsViewModel, EpicSettingsViewModel>();
 
         builder.Services.AddStartupTaskService();
         builder.Services.AddLocalApplicationDataStore();
@@ -49,6 +51,7 @@ internal class Program
         builder.Services.AddSteam();
         builder.Services.AddEA();
         builder.Services.AddGog();
+        builder.Services.AddEpic();
 
         builder.Services.AddSingleton<IMessenger>(WeakReferenceMessenger.Default);
         builder.Services.AddTransient<IPackageInfo, PackageInfo>();

@@ -78,7 +78,7 @@ internal class SteamLauncherHandler : LauncherHandler
 
                             if (process.MainWindowHandle == 0)
                             {
-                                Thread.Sleep(50);
+                                await Task.Delay(50, cancellationToken);
                                 continue;
                             }
 

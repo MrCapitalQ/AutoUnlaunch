@@ -125,6 +125,32 @@
                                               Command="{x:Bind _viewModel.GogSettings.MoreCommand}" />
                     </toolkit:SettingsExpander.Items>
                 </toolkit:SettingsExpander>
+                <toolkit:SettingsExpander Header="Epic Games"
+                                          Description="Automatically stop Epic Games launcher when a game is no longer running">
+                    <toolkit:SettingsExpander.HeaderIcon>
+                        <PathIcon Data="{StaticResource EpicIconPathData}"
+                                  Style="{StaticResource SettingsCardPathIconStyle}" />
+                    </toolkit:SettingsExpander.HeaderIcon>
+                    <ToggleSwitch IsOn="{x:Bind _viewModel.EpicSettings.IsEnabled, Mode=TwoWay}" />
+                    <toolkit:SettingsExpander.Items>
+                        <toolkit:SettingsCard Header="Delay after game closes"
+                                              IsEnabled="{x:Bind _viewModel.EpicSettings.IsEnabled, Mode=OneWay}">
+                            <ComboBox ItemsSource="{x:Bind _viewModel.EpicSettings.DelayOptions}"
+                                      SelectedItem="{x:Bind _viewModel.EpicSettings.SelectedDelay, Mode=TwoWay}"
+                                      DisplayMemberPath="Display" />
+                        </toolkit:SettingsCard>
+                        <toolkit:SettingsCard Header="Launcher stop method"
+                                              IsEnabled="{x:Bind _viewModel.EpicSettings.IsEnabled, Mode=OneWay}">
+                            <ComboBox ItemsSource="{x:Bind _viewModel.EpicSettings.StopMethodOptions}"
+                                      SelectedItem="{x:Bind _viewModel.EpicSettings.SelectedStopMethod, Mode=TwoWay}"
+                                      DisplayMemberPath="Display" />
+                        </toolkit:SettingsCard>
+                        <toolkit:SettingsCard Header="Tips"
+                                              IsEnabled="{x:Bind _viewModel.EpicSettings.IsEnabled, Mode=OneWay}"
+                                              IsClickEnabled="True"
+                                              Command="{x:Bind _viewModel.EpicSettings.MoreCommand}" />
+                    </toolkit:SettingsExpander.Items>
+                </toolkit:SettingsExpander>
 
                 <TextBlock Style="{StaticResource SettingsSectionHeaderTextBlockStyle}"
                            Text="About" />
