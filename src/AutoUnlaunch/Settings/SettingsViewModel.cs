@@ -56,13 +56,24 @@ internal partial class SettingsViewModel : ObservableObject
 
     public List<ComboBoxOption<AppExitBehavior>> ExitBehaviorOptions { get; } =
     [
-        new(AppExitBehavior.Ask, "Ask everytime"),
+        new(AppExitBehavior.Ask, "Ask every time"),
         new(AppExitBehavior.RunInBackground, "Run in the background"),
         new(AppExitBehavior.Stop, "Stop application")
     ];
 
     public string AppDisplayName { get; }
     public string Version { get; }
+
+    public IEnumerable<ExternalLinkViewModel> GeneralLinks =
+        [
+            new("Project GitHub page", "https://github.com/MrCapitalQ/AutoUnlaunch")
+        ];
+
+    public IEnumerable<ExternalLinkViewModel> OpenSourceLibraryLinks =
+        [
+            new("Windows Community Toolkit", "https://github.com/CommunityToolkit/Windows"),
+            new("WinUIEx", "https://github.com/dotMorten/WinUIEx")
+        ];
 
     public ISteamSettingsViewModel SteamSettings { get; }
     public IEASettingsViewModel EASettings { get; }

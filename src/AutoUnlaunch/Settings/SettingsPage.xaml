@@ -9,6 +9,30 @@
       xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
       mc:Ignorable="d">
 
+    <Page.Resources>
+        <Style x:Key="LinksItemsControlStyle"
+               TargetType="ItemsControl">
+            <Setter Property="Margin"
+                    Value="0,8" />
+            <Setter Property="ItemsPanel">
+                <Setter.Value>
+                    <ItemsPanelTemplate>
+                        <StackPanel Spacing="4" />
+                    </ItemsPanelTemplate>
+                </Setter.Value>
+            </Setter>
+            <Setter Property="ItemTemplate">
+                <Setter.Value>
+                    <DataTemplate x:DataType="local:ExternalLinkViewModel">
+                        <HyperlinkButton Content="{x:Bind Text}"
+                                         NavigateUri="{x:Bind Url}"
+                                         ToolTipService.ToolTip="{x:Bind Url}" />
+                    </DataTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </Page.Resources>
+
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
@@ -154,14 +178,29 @@
 
                 <TextBlock Style="{StaticResource SettingsSectionHeaderTextBlockStyle}"
                            Text="About" />
-                <toolkit:SettingsCard Header="{x:Bind _viewModel.AppDisplayName}"
-                                      HeaderIcon="{ui:BitmapIcon Source='Assets/StoreLogo.png'}">
+                <toolkit:SettingsExpander Header="{x:Bind _viewModel.AppDisplayName}"
+                                          HeaderIcon="{ui:BitmapIcon Source='Assets/StoreLogo.png'}">
                     <TextBlock Style="{ThemeResource CaptionTextBlockStyle}"
                                Foreground="{ThemeResource TextFillColorSecondaryBrush}">
                         <Run>Version</Run>
                         <Run Text="{x:Bind _viewModel.Version}" />
                     </TextBlock>
-                </toolkit:SettingsCard>
+
+                    <toolkit:SettingsExpander.Items>
+                        <toolkit:SettingsCard Header="Links">
+                            <toolkit:SettingsCard.Description>
+                                <ItemsControl ItemsSource="{x:Bind _viewModel.GeneralLinks}"
+                                              Style="{StaticResource LinksItemsControlStyle}" />
+                            </toolkit:SettingsCard.Description>
+                        </toolkit:SettingsCard>
+                        <toolkit:SettingsCard Header="Open source libraries">
+                            <toolkit:SettingsCard.Description>
+                                <ItemsControl ItemsSource="{x:Bind _viewModel.OpenSourceLibraryLinks}"
+                                              Style="{StaticResource LinksItemsControlStyle}" />
+                            </toolkit:SettingsCard.Description>
+                        </toolkit:SettingsCard>
+                    </toolkit:SettingsExpander.Items>
+                </toolkit:SettingsExpander>
             </StackPanel>
         </ScrollViewer>
     </Grid>
