@@ -3,11 +3,37 @@
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:local="using:MrCapitalQ.AutoUnlaunch"
+        xmlns:tb="using:H.NotifyIcon"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         mc:Ignorable="d">
 
     <Grid>
-
+        <tb:TaskbarIcon x:Name="TrayIcon"
+                        ToolTipText="{x:Bind Title}"
+                        NoLeftClickDelay="True"
+                        IconSource="\Assets\AppIcon.ico">
+            <tb:TaskbarIcon.LeftClickCommand>
+                <XamlUICommand Label="Open"
+                               ExecuteRequested="OpenApplicationCommand_ExecuteRequested" />
+            </tb:TaskbarIcon.LeftClickCommand>
+            <tb:TaskbarIcon.ContextFlyout>
+                <MenuFlyout>
+                    <MenuFlyoutItem>
+                        <MenuFlyoutItem.Command>
+                            <XamlUICommand Label="Open"
+                                           ExecuteRequested="OpenApplicationCommand_ExecuteRequested" />
+                        </MenuFlyoutItem.Command>
+                    </MenuFlyoutItem>
+                    <MenuFlyoutSeparator />
+                    <MenuFlyoutItem>
+                        <MenuFlyoutItem.Command>
+                            <XamlUICommand Label="Quit"
+                                           ExecuteRequested="ExitApplicationCommand_ExecuteRequested" />
+                        </MenuFlyoutItem.Command>
+                    </MenuFlyoutItem>
+                </MenuFlyout>
+            </tb:TaskbarIcon.ContextFlyout>
+        </tb:TaskbarIcon>
     </Grid>
 </Window>

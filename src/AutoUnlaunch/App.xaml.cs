@@ -1,4 +1,5 @@
 ﻿using CommunityToolkit.Mvvm.Messaging;
+using H.NotifyIcon.EfficiencyMode;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.UI.Xaml;
@@ -27,6 +28,20 @@ public partial class App : Application
     public LifetimeWindow? LifetimeWindow { get; protected set; }
     public MainWindow? MainWindow { get; protected set; }
 
+    public void ShowMainWindow()
+    {
+        EfficiencyModeUtilities.SetEfficiencyMode(false);
+
+        if (MainWindow is null)
+        {
+            MainWindow = Services.GetRequiredService<MainWindow>();
+            MainWindow.Closed += MainWindow_Closed;
+        }
+
+        MainWindow.Activate();
+        MainWindow.SetForegroundWindow();
+    }
+
     protected override void OnLaunched(LaunchActivatedEventArgs args)
     {
         _ = SetPreferredAppMode(PreferredAppMode.AllowDark);
@@ -42,18 +57,8 @@ public partial class App : Application
         if (AppInstance.GetCurrent().GetActivatedEventArgs().Kind != ExtendedActivationKind.StartupTask
             && !Environment.GetCommandLineArgs().Contains("-silent"))
             ShowMainWindow();
-    }
-
-    private void ShowMainWindow()
-    {
-        if (MainWindow is null)
-        {
-            MainWindow = Services.GetRequiredService<MainWindow>();
-            MainWindow.Closed += MainWindow_Closed;
-        }
-
-        MainWindow.Activate();
-        MainWindow.SetForegroundWindow();
+        else
+            EfficiencyModeUtilities.SetEfficiencyMode(true);
     }
 
     private void LifetimeWindow_Closed(object sender, WindowEventArgs args)
@@ -78,6 +83,8 @@ public partial class App : Application
 
     private void MainWindow_Closed(object sender, WindowEventArgs args)
     {
+        EfficiencyModeUtilities.SetEfficiencyMode(true);
+
         if (sender is MainWindow window)
             window.Closed -= MainWindow_Closed;
 
