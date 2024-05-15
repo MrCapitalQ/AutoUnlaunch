@@ -18,6 +18,7 @@ public static class ServiceCollectionExtensions
 
     public static IServiceCollection AddLocalApplicationDataStore(this IServiceCollection services)
     {
+        services.AddMemoryCache();
         services.TryAddSingleton<IApplicationDataStore, LocalApplicationDataStore>();
         return services;
     }
