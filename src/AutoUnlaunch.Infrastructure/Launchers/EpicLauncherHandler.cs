@@ -5,7 +5,12 @@ using MrCapitalQ.AutoUnlaunch.Core.Launchers;
 
 namespace MrCapitalQ.AutoUnlaunch.Infrastructure.Launchers;
 
-internal class EpicLauncherHandler : LauncherHandler
+internal class EpicLauncherHandler(TimeProvider timeProvider,
+    EpicSettingsService epicSettingsService,
+    LauncherChildProcessChecker childProcessChecker,
+    IProtocolLauncher protocolLauncher,
+    ILogger<EpicLauncherHandler> logger)
+    : LauncherHandler(epicSettingsService, timeProvider, logger)
 {
     private const string LauncherProcessName = "EpicGamesLauncher";
     private const string UserHelperProcessName = "EpicOnlineServicesUserHelper";
@@ -29,33 +34,25 @@ internal class EpicLauncherHandler : LauncherHandler
         "UnrealVersionSelector"
     };
 
-    private readonly EpicSettingsService _epicSettingsService;
-    private readonly LauncherChildProcessChecker _childProcessChecker;
-    private readonly IProtocolLauncher _protocolLauncher;
-
-    public EpicLauncherHandler(TimeProvider timeProvider,
-        EpicSettingsService epicSettingsService,
-        LauncherChildProcessChecker childProcessChecker,
-        IProtocolLauncher protocolLauncher,
-        ILogger<EpicLauncherHandler> logger)
-        : base(epicSettingsService, timeProvider, logger)
-    {
-        _epicSettingsService = epicSettingsService;
-        _childProcessChecker = childProcessChecker;
-        _protocolLauncher = protocolLauncher;
-    }
+    private readonly EpicSettingsService _epicSettingsService = epicSettingsService;
+    private readonly LauncherChildProcessChecker _childProcessChecker = childProcessChecker;
+    private readonly IProtocolLauncher _protocolLauncher = protocolLauncher;
 
     protected override string LauncherName => "Epic Games";
 
     protected override Task<bool> IsLauncherRunningAsync(CancellationToken cancellationToken)
-        => Task.FromResult(ProcessHelper.GetSessionProcessesByName(LauncherProcessName).Any());
+    {
+        using var launcherProcessesResult = ProcessHelper.GetSessionProcessesByName(LauncherProcessName);
+        return Task.FromResult(launcherProcessesResult.Items.Any());
+    }
 
     protected override Task<bool> IsLauncherActivityRunningAsync(CancellationToken cancellationToken)
     {
         // Some game processes are not attached to the launcher process as a child but will spawn a user helper process
         // for Epic online services identity. If this is running, assume an Epic game is running. Otherwise, check for
         // processes spawned by the launcher process as usual.
-        if (ProcessHelper.GetSessionProcessesByName(UserHelperProcessName).Any())
+        using var userHelperProcessesResult = ProcessHelper.GetSessionProcessesByName(UserHelperProcessName);
+        if (userHelperProcessesResult.Items.Any())
             return Task.FromResult(true);
 
         return Task.FromResult(_childProcessChecker.IsChildProcessRunning(LauncherProcessName, s_excludedProcessNames));
@@ -67,12 +64,15 @@ internal class EpicLauncherHandler : LauncherHandler
         switch (stopMethod)
         {
             case LauncherStopMethod.KillProcess:
-                foreach (var process in ProcessHelper.GetSessionProcessesByName(LauncherProcessName))
+                using (var launcherProcessesResult = ProcessHelper.GetSessionProcessesByName(LauncherProcessName))
                 {
-                    _logger.LogInformation("Killing process {ProcessName} ({ProcessId}).",
-                        process.ProcessName,
-                        process.Id);
-                    process.Kill();
+                    foreach (var process in launcherProcessesResult.Items)
+                    {
+                        _logger.LogInformation("Killing process {ProcessName} ({ProcessId}).",
+                            process.ProcessName,
+                            process.Id);
+                        process.Kill();
+                    }
                 }
                 break;
             case LauncherStopMethod.CloseMainWindow:
@@ -84,7 +84,8 @@ internal class EpicLauncherHandler : LauncherHandler
                 var timeout = _timeProvider.GetUtcNow().AddSeconds(1);
                 while (DateTimeOffset.UtcNow < timeout)
                 {
-                    var processesWithMainWindow = ProcessHelper.GetSessionProcessesByName(LauncherProcessName)
+                    using var launcherProcessesResult = ProcessHelper.GetSessionProcessesByName(LauncherProcessName);
+                    var processesWithMainWindow = launcherProcessesResult.Items
                             .Where(x => x.MainWindowHandle != 0)
                             .ToList();
 

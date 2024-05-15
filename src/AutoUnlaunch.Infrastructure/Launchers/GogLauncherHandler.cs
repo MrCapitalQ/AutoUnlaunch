@@ -6,7 +6,11 @@ using System.Diagnostics;
 
 namespace MrCapitalQ.AutoUnlaunch.Infrastructure.Launchers;
 
-internal class GogLauncherHandler : LauncherHandler
+internal class GogLauncherHandler(TimeProvider timeProvider,
+    GogSettingsService gogSettingsService,
+    LauncherChildProcessChecker childProcessChecker,
+    ILogger<GogLauncherHandler> logger)
+    : LauncherHandler(gogSettingsService, timeProvider, logger)
 {
     private const string LauncherProcessName = "GalaxyClient";
     private const string RegistryRootPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\WOW6432Node\GOG.com\GalaxyClient";
@@ -19,23 +23,16 @@ internal class GogLauncherHandler : LauncherHandler
         "GOG Galaxy Notifications Renderer"
     };
 
-    private readonly GogSettingsService _gogSettingsService;
-    private readonly LauncherChildProcessChecker _childProcessChecker;
-
-    public GogLauncherHandler(TimeProvider timeProvider,
-        GogSettingsService gogSettingsService,
-        LauncherChildProcessChecker childProcessChecker,
-        ILogger<GogLauncherHandler> logger)
-        : base(gogSettingsService, timeProvider, logger)
-    {
-        _gogSettingsService = gogSettingsService;
-        _childProcessChecker = childProcessChecker;
-    }
+    private readonly GogSettingsService _gogSettingsService = gogSettingsService;
+    private readonly LauncherChildProcessChecker _childProcessChecker = childProcessChecker;
 
     protected override string LauncherName => "GOG Galaxy";
 
     protected override Task<bool> IsLauncherRunningAsync(CancellationToken cancellationToken)
-        => Task.FromResult(ProcessHelper.GetSessionProcessesByName(LauncherProcessName).Any());
+    {
+        using var launcherProcessesResult = ProcessHelper.GetSessionProcessesByName(LauncherProcessName);
+        return Task.FromResult(launcherProcessesResult.Items.Any());
+    }
 
     protected override Task<bool> IsLauncherActivityRunningAsync(CancellationToken cancellationToken)
         => Task.FromResult(_childProcessChecker.IsChildProcessRunning(LauncherProcessName, s_excludedProcessNames));
@@ -46,12 +43,15 @@ internal class GogLauncherHandler : LauncherHandler
         switch (stopMethod)
         {
             case LauncherStopMethod.KillProcess:
-                foreach (var process in ProcessHelper.GetSessionProcessesByName(LauncherProcessName))
+                using (var launcherProcessesResult = ProcessHelper.GetSessionProcessesByName(LauncherProcessName))
                 {
-                    _logger.LogInformation("Killing process {ProcessName} ({ProcessId}).",
-                        process.ProcessName,
-                        process.Id);
-                    process.Kill();
+                    foreach (var process in launcherProcessesResult.Items)
+                    {
+                        _logger.LogInformation("Killing process {ProcessName} ({ProcessId}).",
+                            process.ProcessName,
+                            process.Id);
+                        process.Kill();
+                    }
                 }
                 break;
             case LauncherStopMethod.RequestShutdown:
