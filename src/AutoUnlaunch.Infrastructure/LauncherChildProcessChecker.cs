@@ -43,13 +43,15 @@ internal class LauncherChildProcessChecker
 
         _logger.LogTrace("Checking for a child process of {ProcessName}.", launcherProcessName);
 
-        var launcherProcess = ProcessHelper.GetSessionProcessesByName(launcherProcessName).FirstOrDefault();
+        using var launcherProcessesResult = ProcessHelper.GetSessionProcessesByName(launcherProcessName);
+        var launcherProcess = launcherProcessesResult.Items.FirstOrDefault();
         if (launcherProcess is null)
             return false;
 
         // Look for a child process of the launcher to see if it has launched any activity. Cache that process if one
         // is found to avoid repeated this check unnecessarily.
-        _currentActivityProcessId = ProcessHelper.GetSessionProcessesByParent(launcherProcess.Id, excludedProcessNames)
+        using var childProcessesResult = ProcessHelper.GetSessionProcessesByParent(launcherProcess.Id, excludedProcessNames);
+        _currentActivityProcessId = childProcessesResult.Items
             .FirstOrDefault()
             ?.Id;
 

@@ -7,29 +7,26 @@ using System.Diagnostics;
 
 namespace MrCapitalQ.AutoUnlaunch.Infrastructure.Launchers;
 
-internal class SteamLauncherHandler : LauncherHandler
+internal class SteamLauncherHandler(TimeProvider timeProvider,
+    SteamSettingsService steamSettingsService,
+    IProtocolLauncher protocolLauncher,
+    ILogger<SteamLauncherHandler> logger)
+    : LauncherHandler(steamSettingsService, timeProvider, logger)
 {
     private const string LauncherProcessName = "steam";
     private const string WebHelperProcessName = "steamwebhelper";
     private static readonly Uri s_exitUri = new($"{LauncherUriProtocols.Steam}exit");
 
-    private readonly SteamSettingsService _steamSettingsService;
-    private readonly IProtocolLauncher _protocolLauncher;
-
-    public SteamLauncherHandler(TimeProvider timeProvider,
-        SteamSettingsService steamSettingsService,
-        IProtocolLauncher protocolLauncher,
-        ILogger<SteamLauncherHandler> logger)
-        : base(steamSettingsService, timeProvider, logger)
-    {
-        _steamSettingsService = steamSettingsService;
-        _protocolLauncher = protocolLauncher;
-    }
+    private readonly SteamSettingsService _steamSettingsService = steamSettingsService;
+    private readonly IProtocolLauncher _protocolLauncher = protocolLauncher;
 
     protected override string LauncherName => "Steam";
 
     protected override Task<bool> IsLauncherRunningAsync(CancellationToken cancellationToken)
-        => Task.FromResult(ProcessHelper.GetSessionProcessesByName(LauncherProcessName).Any());
+    {
+        using var launcherProcessesResult = ProcessHelper.GetSessionProcessesByName(LauncherProcessName);
+        return Task.FromResult(launcherProcessesResult.Items.Any());
+    }
 
     protected override Task<bool> IsLauncherActivityRunningAsync(CancellationToken cancellationToken)
     {
@@ -43,12 +40,15 @@ internal class SteamLauncherHandler : LauncherHandler
         switch (stopMethod)
         {
             case LauncherStopMethod.KillProcess:
-                foreach (var process in ProcessHelper.GetSessionProcessesByName(LauncherProcessName))
+                using (var launcherProcessesResult = ProcessHelper.GetSessionProcessesByName(LauncherProcessName))
                 {
-                    _logger.LogInformation("Killing process {ProcessName} ({ProcessId}).",
-                        process.ProcessName,
-                        process.Id);
-                    process.Kill();
+                    foreach (var process in launcherProcessesResult.Items)
+                    {
+                        _logger.LogInformation("Killing process {ProcessName} ({ProcessId}).",
+                            process.ProcessName,
+                            process.Id);
+                        process.Kill();
+                    }
                 }
                 break;
             case LauncherStopMethod.RequestShutdown:
@@ -160,11 +160,13 @@ internal class SteamLauncherHandler : LauncherHandler
     {
         // Look for the main Steam UI process by searching for the sole steamwebhelper process where its parent process
         // is the steam process.
-        var launcherProcess = ProcessHelper.GetSessionProcessesByName(LauncherProcessName).FirstOrDefault();
+        using var launcherProcessesResult = ProcessHelper.GetSessionProcessesByName(LauncherProcessName);
+        var launcherProcess = launcherProcessesResult.Items.FirstOrDefault();
         if (launcherProcess is null)
             return null;
 
-        return ProcessHelper.GetSessionProcessesByName(WebHelperProcessName)
+        using var webHelperProcessesResult = ProcessHelper.GetSessionProcessesByName(WebHelperProcessName);
+        return webHelperProcessesResult.Items
             .Where(x => x.GetParentProcessId() == launcherProcess.Id)
             .FirstOrDefault()
             ?.Id;

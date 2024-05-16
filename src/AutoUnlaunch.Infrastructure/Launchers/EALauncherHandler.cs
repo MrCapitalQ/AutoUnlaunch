@@ -5,7 +5,11 @@ using MrCapitalQ.AutoUnlaunch.Launchers.Handlers;
 
 namespace MrCapitalQ.AutoUnlaunch.Infrastructure.Launchers;
 
-internal class EALauncherHandler : LauncherHandler
+internal class EALauncherHandler(TimeProvider timeProvider,
+    EASettingsService eaSettingsService,
+    LauncherChildProcessChecker childProcessChecker,
+    ILogger<EALauncherHandler> logger)
+    : LauncherHandler(eaSettingsService, timeProvider, logger)
 {
     private const string LauncherProcessName = "EADesktop";
     private static readonly IReadOnlySet<string> s_excludedProcessNames = new HashSet<string>
@@ -31,23 +35,16 @@ internal class EALauncherHandler : LauncherHandler
         "OriginLegacyCompatibility"
     };
 
-    private readonly EASettingsService _eaSettingsService;
-    private readonly LauncherChildProcessChecker _childProcessChecker;
-
-    public EALauncherHandler(TimeProvider timeProvider,
-        EASettingsService eaSettingsService,
-        LauncherChildProcessChecker childProcessChecker,
-        ILogger<EALauncherHandler> logger)
-        : base(eaSettingsService, timeProvider, logger)
-    {
-        _eaSettingsService = eaSettingsService;
-        _childProcessChecker = childProcessChecker;
-    }
+    private readonly EASettingsService _eaSettingsService = eaSettingsService;
+    private readonly LauncherChildProcessChecker _childProcessChecker = childProcessChecker;
 
     protected override string LauncherName => "EA";
 
     protected override Task<bool> IsLauncherRunningAsync(CancellationToken cancellationToken)
-        => Task.FromResult(ProcessHelper.GetSessionProcessesByName(LauncherProcessName).Any());
+    {
+        using var launcherProcessesResult = ProcessHelper.GetSessionProcessesByName(LauncherProcessName);
+        return Task.FromResult(launcherProcessesResult.Items.Any());
+    }
 
     protected override Task<bool> IsLauncherActivityRunningAsync(CancellationToken cancellationToken)
         => Task.FromResult(_childProcessChecker.IsChildProcessRunning(LauncherProcessName, s_excludedProcessNames));
@@ -58,12 +55,15 @@ internal class EALauncherHandler : LauncherHandler
         switch (stopMethod)
         {
             case LauncherStopMethod.KillProcess:
-                foreach (var process in ProcessHelper.GetSessionProcessesByName(LauncherProcessName))
+                using (var launcherProcessesResult = ProcessHelper.GetSessionProcessesByName(LauncherProcessName))
                 {
-                    _logger.LogInformation("Killing process {ProcessName} ({ProcessId}).",
-                        process.ProcessName,
-                        process.Id);
-                    process.Kill();
+                    foreach (var process in launcherProcessesResult.Items)
+                    {
+                        _logger.LogInformation("Killing process {ProcessName} ({ProcessId}).",
+                            process.ProcessName,
+                            process.Id);
+                        process.Kill();
+                    }
                 }
                 break;
             case LauncherStopMethod.CloseMainWindow:
@@ -73,7 +73,8 @@ internal class EALauncherHandler : LauncherHandler
                 var timeout = _timeProvider.GetUtcNow().AddSeconds(1);
                 while (_timeProvider.GetUtcNow() < timeout)
                 {
-                    var processes = ProcessHelper.GetSessionProcessesByName(LauncherProcessName)
+                    using var launcherProcessesResult = ProcessHelper.GetSessionProcessesByName(LauncherProcessName);
+                    var processes = launcherProcessesResult.Items
                         .Where(x => x.MainWindowHandle != 0)
                         .ToList();
 
@@ -106,7 +107,8 @@ internal class EALauncherHandler : LauncherHandler
         if (_eaSettingsService.GetMinimizesOnActivityEnd() != true)
             return Task.CompletedTask;
 
-        foreach (var process in ProcessHelper.GetSessionProcessesByName(LauncherProcessName))
+        using var launcherProcessesResult = ProcessHelper.GetSessionProcessesByName(LauncherProcessName);
+        foreach (var process in launcherProcessesResult.Items)
         {
             _logger.LogInformation("Minimizing current main window with title '{WindowTitle}' for process {ProcessName} ({ProcessId}).",
                 process.MainWindowTitle,
