@@ -1,10 +1,11 @@
 ﻿using CommunityToolkit.Mvvm.Input;
 using MrCapitalQ.AutoUnlaunch.Core.AppData;
 using MrCapitalQ.AutoUnlaunch.Shared;
+using System.ComponentModel;
 
 namespace MrCapitalQ.AutoUnlaunch.Settings.Launchers.Epic;
 
-public interface IEpicSettingsViewModel
+public interface IEpicSettingsViewModel : INotifyPropertyChanged
 {
     bool IsEnabled { get; set; }
     IEnumerable<ComboBoxOption<int>> DelayOptions { get; }
