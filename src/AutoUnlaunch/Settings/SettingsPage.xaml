@@ -179,7 +179,7 @@
                 <TextBlock Style="{StaticResource SettingsSectionHeaderTextBlockStyle}"
                            Text="About" />
                 <toolkit:SettingsExpander Header="{x:Bind _viewModel.AppDisplayName}"
-                                          HeaderIcon="{ui:BitmapIcon Source='Assets/StoreLogo.png'}">
+                                          HeaderIcon="{ui:BitmapIcon Source='Assets/AboutLogo.png'}">
                     <TextBlock Style="{ThemeResource CaptionTextBlockStyle}"
                                Foreground="{ThemeResource TextFillColorSecondaryBrush}">
                         <Run>Version</Run>
