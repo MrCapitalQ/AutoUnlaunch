@@ -37,7 +37,6 @@ internal class Program
         builder.Services.AddSingleton<LifetimeWindow>();
         builder.Services.AddTransient<MainWindow>();
 
-        builder.Services.AddSingleton<SettingsPage>();
         builder.Services.AddSingleton<SettingsViewModel>();
         builder.Services.AddSingleton<ISteamSettingsViewModel, SteamSettingsViewModel>();
         builder.Services.AddSingleton<IEASettingsViewModel, EASettingsViewModel>();
