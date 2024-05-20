@@ -74,6 +74,7 @@ internal partial class SettingsViewModel : ObservableObject
             new("H.NotifyIcon", "https://github.com/HavenDV/H.NotifyIcon"),
             new("Windows App SDK", "https://github.com/microsoft/WindowsAppSDK"),
             new("Windows Community Toolkit", "https://github.com/CommunityToolkit/Windows"),
+            new("WinUI", "https://github.com/microsoft/microsoft-ui-xaml"),
             new("WinUIEx", "https://github.com/dotMorten/WinUIEx")
         ];
 
