@@ -4,6 +4,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Windows.AppLifecycle;
 using MrCapitalQ.AutoUnlaunch;
 using MrCapitalQ.AutoUnlaunch.Core;
+using MrCapitalQ.AutoUnlaunch.Core.Logging;
 using MrCapitalQ.AutoUnlaunch.Hosts;
 using MrCapitalQ.AutoUnlaunch.Infrastructure;
 using MrCapitalQ.AutoUnlaunch.Settings;
@@ -29,6 +30,8 @@ internal class Program
 
         var builder = Host.CreateApplicationBuilder(args);
 
+        builder.Logging.AddFile();
+
         builder.Services.AddHostedService<WindowsAppHostedService<App>>();
         builder.Services.AddHostedService<LauncherBackgroundService>();
         builder.Services.AddSingleton(TimeProvider.System);
@@ -38,6 +41,7 @@ internal class Program
         builder.Services.AddTransient<MainWindow>();
 
         builder.Services.AddSingleton<SettingsViewModel>();
+        builder.Services.AddSingleton<AdvancedSettingsViewModel>();
         builder.Services.AddSingleton<ISteamSettingsViewModel, SteamSettingsViewModel>();
         builder.Services.AddSingleton<IEASettingsViewModel, EASettingsViewModel>();
         builder.Services.AddSingleton<IGogSettingsViewModel, GogSettingsViewModel>();
@@ -54,6 +58,7 @@ internal class Program
 
         builder.Services.AddSingleton<IMessenger>(WeakReferenceMessenger.Default);
         builder.Services.AddTransient<IPackageInfo, PackageInfo>();
+        builder.Services.AddTransient<ILogExporter, LogExporter>();
 
         var host = builder.Build();
         host.Run();

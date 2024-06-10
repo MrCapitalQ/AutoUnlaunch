@@ -26,7 +26,7 @@ internal class LauncherChildProcessChecker
 
                 Process.GetProcessById(_currentActivityProcessId.Value);
 
-                _logger.LogTrace("Cached child process {ProcessId} of {ProcessName} is still running.",
+                _logger.LogDebug("Cached child process {ProcessId} of {ProcessName} is still running.",
                     _currentActivityProcessId,
                     launcherProcessName);
 
@@ -34,7 +34,7 @@ internal class LauncherChildProcessChecker
             }
             catch (ArgumentException)
             {
-                _logger.LogTrace("Cached child process {ProcessId} of {ProcessName} is no longer running.",
+                _logger.LogDebug("Cached child process {ProcessId} of {ProcessName} is no longer running.",
                     _currentActivityProcessId,
                     launcherProcessName);
                 _currentActivityProcessId = null;
@@ -55,6 +55,12 @@ internal class LauncherChildProcessChecker
             .FirstOrDefault()
             ?.Id;
 
-        return _currentActivityProcessId is not null;
+        if (_currentActivityProcessId is null)
+            return false;
+
+        _logger.LogDebug("Found child process {ProcessId} of {ProcessName} running. Caching for future checks.",
+            _currentActivityProcessId,
+            launcherProcessName);
+        return true;
     }
 }

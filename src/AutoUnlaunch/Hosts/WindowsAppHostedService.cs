@@ -1,5 +1,6 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 using Microsoft.UI.Dispatching;
 using Microsoft.UI.Xaml;
 using MrCapitalQ.AutoUnlaunch.Shared;
@@ -8,17 +9,13 @@ using System.Diagnostics.CodeAnalysis;
 namespace MrCapitalQ.AutoUnlaunch.Hosts;
 
 [ExcludeFromCodeCoverage(Justification = ExcludeFromCoverageJustifications.RequiresUIThread)]
-internal class WindowsAppHostedService<TApplication> : IHostedService
-    where TApplication : Application
+internal class WindowsAppHostedService<TApplication>(IHostApplicationLifetime hostApplicationLifetime,
+    IServiceProvider serviceProvider,
+    ILogger<WindowsAppHostedService<TApplication>> logger) : IHostedService where TApplication : Application
 {
-    private readonly IHostApplicationLifetime _hostApplicationLifetime;
-    private readonly IServiceProvider _serviceProvider;
-
-    public WindowsAppHostedService(IHostApplicationLifetime hostApplicationLifetime, IServiceProvider serviceProvider)
-    {
-        _hostApplicationLifetime = hostApplicationLifetime;
-        _serviceProvider = serviceProvider;
-    }
+    private readonly IHostApplicationLifetime _hostApplicationLifetime = hostApplicationLifetime;
+    private readonly IServiceProvider _serviceProvider = serviceProvider;
+    private readonly ILogger<WindowsAppHostedService<TApplication>> _logger = logger;
 
     public Task StartAsync(CancellationToken cancellationToken)
     {
@@ -37,8 +34,12 @@ internal class WindowsAppHostedService<TApplication> : IHostedService
         {
             var context = new DispatcherQueueSynchronizationContext(DispatcherQueue.GetForCurrentThread());
             SynchronizationContext.SetSynchronizationContext(context);
-            _serviceProvider.GetRequiredService<TApplication>();
+            var app = _serviceProvider.GetRequiredService<TApplication>();
+            app.UnhandledException += App_UnhandledException;
         });
         _hostApplicationLifetime.StopApplication();
     }
+
+    private void App_UnhandledException(object sender, Microsoft.UI.Xaml.UnhandledExceptionEventArgs e)
+        => _logger.LogCritical(e.Exception, "An unhandled application exception has occurred.");
 }
