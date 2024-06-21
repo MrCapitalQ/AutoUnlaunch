@@ -1,4 +1,7 @@
-﻿using MrCapitalQ.AutoUnlaunch.Core.AppData;
+﻿using CommunityToolkit.Mvvm.Messaging;
+using Microsoft.Extensions.Logging.Testing;
+using Microsoft.UI.Xaml.Media.Animation;
+using MrCapitalQ.AutoUnlaunch.Core.AppData;
 using MrCapitalQ.AutoUnlaunch.Core.Startup;
 using MrCapitalQ.AutoUnlaunch.Settings;
 using MrCapitalQ.AutoUnlaunch.Settings.Launchers.EA;
@@ -6,6 +9,7 @@ using MrCapitalQ.AutoUnlaunch.Settings.Launchers.Epic;
 using MrCapitalQ.AutoUnlaunch.Settings.Launchers.Gog;
 using MrCapitalQ.AutoUnlaunch.Settings.Launchers.Steam;
 using MrCapitalQ.AutoUnlaunch.Shared;
+using NSubstitute.ExceptionExtensions;
 using Windows.ApplicationModel;
 
 namespace MrCapitalQ.AutoUnlaunch.Tests.Settings;
@@ -15,10 +19,12 @@ public class SettingsViewModelTests
     private readonly IStartupTaskService _startupTaskService;
     private readonly ISettingsService _settingsService;
     private readonly IPackageInfo _packageInfo;
+    private readonly IMessenger _messenger;
     private readonly ISteamSettingsViewModel _steamSettingsViewModel;
     private readonly IEASettingsViewModel _eaSettingsViewModel;
     private readonly IGogSettingsViewModel _gogSettingsViewModel;
     private readonly IEpicSettingsViewModel _epicSettingsViewModel;
+    private readonly FakeLogger<SettingsViewModel> _logger;
 
     private readonly SettingsViewModel _viewModel;
 
@@ -27,52 +33,22 @@ public class SettingsViewModelTests
         _startupTaskService = Substitute.For<IStartupTaskService>();
         _settingsService = Substitute.For<ISettingsService>();
         _packageInfo = Substitute.For<IPackageInfo>();
+        _messenger = Substitute.For<IMessenger>();
         _steamSettingsViewModel = Substitute.For<ISteamSettingsViewModel>();
         _eaSettingsViewModel = Substitute.For<IEASettingsViewModel>();
         _gogSettingsViewModel = Substitute.For<IGogSettingsViewModel>();
         _epicSettingsViewModel = Substitute.For<IEpicSettingsViewModel>();
+        _logger = new FakeLogger<SettingsViewModel>();
 
         _viewModel = new(_startupTaskService,
             _settingsService,
             _packageInfo,
+            _messenger,
             _steamSettingsViewModel,
             _eaSettingsViewModel,
             _gogSettingsViewModel,
-            _epicSettingsViewModel);
-    }
-
-    [Fact]
-    public void Ctor_WithMatchingExitBehaviorOption_InitializesFromSettings()
-    {
-        var expected = AppExitBehavior.Stop;
-        _settingsService.GetAppExitBehavior().Returns(expected);
-
-        var viewModel = new SettingsViewModel(_startupTaskService,
-            _settingsService,
-            _packageInfo,
-            _steamSettingsViewModel,
-            _eaSettingsViewModel,
-            _gogSettingsViewModel,
-            _epicSettingsViewModel);
-
-        Assert.Equal(expected, viewModel.SelectedExitBehavior.Value);
-    }
-
-    [Fact]
-    public void Ctor_WithNoMatchingExitBehaviorOption_InitializesWithDefault()
-    {
-        var expected = AppExitBehavior.RunInBackground;
-        _settingsService.GetAppExitBehavior().Returns((AppExitBehavior)100);
-
-        var viewModel = new SettingsViewModel(_startupTaskService,
-            _settingsService,
-            _packageInfo,
-            _steamSettingsViewModel,
-            _eaSettingsViewModel,
-            _gogSettingsViewModel,
-            _epicSettingsViewModel);
-
-        Assert.Equal(expected, viewModel.SelectedExitBehavior.Value);
+            _epicSettingsViewModel,
+            _logger);
     }
 
     [Fact]
@@ -85,10 +61,12 @@ public class SettingsViewModelTests
         var viewModel = new SettingsViewModel(_startupTaskService,
             _settingsService,
             _packageInfo,
+            _messenger,
             _steamSettingsViewModel,
             _eaSettingsViewModel,
             _gogSettingsViewModel,
-            _epicSettingsViewModel);
+            _epicSettingsViewModel,
+            _logger);
 
         Assert.Equal(expectedAppDisplayName, viewModel.AppDisplayName);
         Assert.Equal("1.2.3", viewModel.Version);
@@ -101,16 +79,6 @@ public class SettingsViewModelTests
         Assert.Equal(_eaSettingsViewModel, _viewModel.EASettings);
         Assert.Equal(_gogSettingsViewModel, _viewModel.GogSettings);
         Assert.Equal(_epicSettingsViewModel, _viewModel.EpicSettings);
-    }
-
-    [Fact]
-    public void Ctor_AllAppExitBehaviorHasCorrespondingOption()
-    {
-        var expected = Enum.GetValues<AppExitBehavior>();
-
-        var actual = _viewModel.ExitBehaviorOptions.Select(option => option.Value);
-
-        Assert.Equivalent(expected, actual);
     }
 
     [InlineData(AppStartupState.Disabled, false, true, "Start automatically in the background when you sign in")]
@@ -129,10 +97,12 @@ public class SettingsViewModelTests
         var viewModel = new SettingsViewModel(_startupTaskService,
             _settingsService,
             _packageInfo,
+            _messenger,
             _steamSettingsViewModel,
             _eaSettingsViewModel,
             _gogSettingsViewModel,
-            _epicSettingsViewModel);
+            _epicSettingsViewModel,
+            _logger);
 
         Assert.Equal(expectedIsStartupOn, viewModel.IsStartupOn);
         Assert.Equal(expectedIsStartupToggleEnabled, viewModel.IsStartupToggleEnabled);
@@ -142,7 +112,7 @@ public class SettingsViewModelTests
     [InlineData(false, AppStartupState.Disabled, false)]
     [InlineData(true, AppStartupState.Enabled, true)]
     [Theory]
-    public void IsStartupOn_SetsStartupState(bool isStartOn, AppStartupState startupState, bool expectedIsStartupOn)
+    public void SetIsStartupOn_SetsStartupState(bool isStartOn, AppStartupState startupState, bool expectedIsStartupOn)
     {
         _startupTaskService.GetStartupStateAsync().Returns(startupState);
 
@@ -150,5 +120,27 @@ public class SettingsViewModelTests
 
         Assert.Equal(expectedIsStartupOn, _viewModel.IsStartupOn);
         _startupTaskService.Received(1).SetStartupStateAsync(isStartOn);
+    }
+
+    [Fact]
+    public void SetIsStartupOn_ExceptionThrown_LogsError()
+    {
+        var expectedException = new Exception("Test exception.");
+        _startupTaskService.GetStartupStateAsync().ThrowsAsync(expectedException);
+
+        _viewModel.IsStartupOn = true;
+
+        Assert.Equal("An error occurred while updating application startup state.", _logger.LatestRecord.Message);
+        Assert.Equal(expectedException, _logger.LatestRecord.Exception);
+    }
+
+    [Fact]
+    public void AdvancedSettingsCommand_SendsNavigateMessage()
+    {
+        var navigateMessage = new SlideNavigateMessage(typeof(AdvancedSettingsPage), SlideNavigationTransitionEffect.FromRight);
+
+        _viewModel.AdvancedSettingsCommand.Execute(null);
+
+        _messenger.Received(1).Send<NavigateMessage, TestMessengerToken>(navigateMessage, Arg.Any<TestMessengerToken>());
     }
 }

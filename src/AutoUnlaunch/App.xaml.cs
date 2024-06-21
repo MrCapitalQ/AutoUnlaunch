@@ -5,6 +5,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.UI.Xaml;
 using Microsoft.Windows.AppLifecycle;
 using MrCapitalQ.AutoUnlaunch.Core.AppData;
+using MrCapitalQ.AutoUnlaunch.Core.Logging;
 using MrCapitalQ.AutoUnlaunch.Shared;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.InteropServices;
@@ -46,7 +47,10 @@ public partial class App : Application
     {
         _ = SetPreferredAppMode(PreferredAppMode.AllowDark);
 
-        Services.GetRequiredService<ISettingsService>().SetHasBeenLaunchedOnce();
+        var settingsService = Services.GetRequiredService<ISettingsService>();
+        settingsService.SetHasBeenLaunchedOnce();
+
+        Services.GetRequiredService<ILogLevelManager>().SetMinimumLogLevel(settingsService.GetMinimumLogLevel());
 
         LifetimeWindow = Services.GetRequiredService<LifetimeWindow>();
         LifetimeWindow.Closed += LifetimeWindow_Closed;

@@ -1,4 +1,5 @@
 using CommunityToolkit.Mvvm.Messaging;
+using Microsoft.Extensions.Logging;
 using Microsoft.UI.Windowing;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
@@ -19,6 +20,8 @@ public sealed partial class MainWindow : WindowEx
 {
     private readonly ISettingsService _settingsService;
     private readonly IMessenger _messenger;
+    private readonly ILogger<MainWindow> _logger;
+
     private readonly ContentDialog _closeDialog = new()
     {
         Title = "Run in the background?",
@@ -32,10 +35,11 @@ public sealed partial class MainWindow : WindowEx
 
     private bool _isDialogVisible = false;
 
-    public MainWindow(ISettingsService settingsService, IMessenger messenger)
+    public MainWindow(ISettingsService settingsService, IMessenger messenger, ILogger<MainWindow> logger)
     {
         _settingsService = settingsService;
         _messenger = messenger;
+        _logger = logger;
 
         InitializeComponent();
 
@@ -60,26 +64,33 @@ public sealed partial class MainWindow : WindowEx
 
     private async void AppWindow_Closing(AppWindow sender, AppWindowClosingEventArgs args)
     {
-        var appExitBehavior = _settingsService.GetAppExitBehavior();
-        if (appExitBehavior == AppExitBehavior.RunInBackground)
-            return;
-
-        if (appExitBehavior == AppExitBehavior.Stop)
+        try
         {
-            _messenger.Send(new StopAppMessage());
-            return;
+            var appExitBehavior = _settingsService.GetAppExitBehavior();
+            if (appExitBehavior == AppExitBehavior.RunInBackground)
+                return;
+
+            if (appExitBehavior == AppExitBehavior.Stop)
+            {
+                _messenger.Send(new StopAppMessage());
+                return;
+            }
+
+            args.Cancel = true;
+
+            var result = await ShowCloseDialog();
+            if (result == ContentDialogResult.None)
+                return;
+
+            if (result == ContentDialogResult.Secondary)
+                _messenger.Send(new StopAppMessage());
+
+            Close();
         }
-
-        args.Cancel = true;
-
-        var result = await ShowCloseDialog();
-        if (result == ContentDialogResult.None)
-            return;
-
-        if (result == ContentDialogResult.Secondary)
-            _messenger.Send(new StopAppMessage());
-
-        Close();
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "An error occurred when handling main window closing event.");
+        }
     }
 
     private async Task<ContentDialogResult> ShowCloseDialog()
