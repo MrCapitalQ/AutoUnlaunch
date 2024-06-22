@@ -58,22 +58,10 @@ internal partial class AdvancedSettingsViewModel : ObservableObject
     ];
 
     [RelayCommand]
-    private async Task ExportLogsAsync()
+    private void ExportLogs()
     {
         IsExporting = true;
-
-        try
-        {
-            await _logExporter.ExportLogsAsync();
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "An error occurred while exporting the application logs.");
-        }
-        finally
-        {
-            IsExporting = false;
-        }
+        throw new Exception("Test exception.");
     }
 
     partial void OnSelectedExitBehaviorChanged(ComboBoxOption<AppExitBehavior> value)

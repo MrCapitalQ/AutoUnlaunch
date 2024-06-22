@@ -110,9 +110,15 @@ jobs:
     - name: Create MS Store Package
       shell: pwsh
       run: |
-        Get-ChildItem *.msixsym -Recurse | Rename-Item -NewName { $_.name -replace ".msixsym", ".appxsym" }
+        Get-ChildItem *.msixsym -Recurse | ForEach-Object {
+            $newName = $_.name -replace ".msixsym", ".appxsym"
+            $newName = $newName -replace "$($env:PACKAGE_NAME)_", "$($env:PACKAGE_NAME)_$($env:PACKAGE_VERSION)_"
+            Rename-Item -Path $_.FullName -NewName $newName
+        }
         Get-ChildItem ./* -Include "*.msixbundle", "*.appxsym" -Recurse | Compress-Archive -DestinationPath "$env:MSIX_UPLOAD_PATH"
       env:
+        PACKAGE_NAME: ${{ inputs.PACKAGE_NAME }}
+        PACKAGE_VERSION: ${{ steps.determine-version.outputs.PACKAGE_VERSION }}
         MSIX_UPLOAD_PATH: ${{ github.workspace }}/${{ inputs.PACKAGE_NAME }}_${{ steps.determine-version.outputs.PACKAGE_VERSION }}.msixupload
 
     - name: Upload MS Store Package

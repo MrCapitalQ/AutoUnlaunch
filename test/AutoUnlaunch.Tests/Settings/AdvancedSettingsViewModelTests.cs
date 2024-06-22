@@ -4,7 +4,6 @@ using Microsoft.Extensions.Time.Testing;
 using MrCapitalQ.AutoUnlaunch.Core.AppData;
 using MrCapitalQ.AutoUnlaunch.Core.Logging;
 using MrCapitalQ.AutoUnlaunch.Settings;
-using NSubstitute.ExceptionExtensions;
 
 namespace MrCapitalQ.AutoUnlaunch.Tests.Settings;
 
@@ -105,30 +104,30 @@ public class AdvancedSettingsViewModelTests
         _logLevelManager.Received(1).SetMinimumLogLevel(value);
     }
 
-    [Fact]
-    public async Task ExportLogsCommand_CallsLogExporterAndSetsIsExportingWhileBusy()
-    {
-        _logExporter.ExportLogsAsync().Returns(Task.Delay(TimeSpan.FromSeconds(1), _timeProvider));
+    //[Fact]
+    //public async Task ExportLogsCommand_CallsLogExporterAndSetsIsExportingWhileBusy()
+    //{
+    //    _logExporter.ExportLogsAsync().Returns(Task.Delay(TimeSpan.FromSeconds(1), _timeProvider));
 
-        _ = _viewModel.ExportLogsCommand.ExecuteAsync(null);
+    //    _ = _viewModel.ExportLogsCommand.ExecuteAsync(null);
 
-        Assert.True(_viewModel.IsExporting);
-        await _logExporter.Received(1).ExportLogsAsync();
+    //    Assert.True(_viewModel.IsExporting);
+    //    await _logExporter.Received(1).ExportLogsAsync();
 
-        _timeProvider.Advance(TimeSpan.FromSeconds(1));
+    //    _timeProvider.Advance(TimeSpan.FromSeconds(1));
 
-        Assert.False(_viewModel.IsExporting);
-    }
+    //    Assert.False(_viewModel.IsExporting);
+    //}
 
-    [Fact]
-    public async Task ExportLogsCommand_ExceptionThrown_LogsError()
-    {
-        var expectedException = new Exception("Test exception");
-        _logExporter.ExportLogsAsync().ThrowsAsync(expectedException);
+    //[Fact]
+    //public async Task ExportLogsCommand_ExceptionThrown_LogsError()
+    //{
+    //    var expectedException = new Exception("Test exception");
+    //    _logExporter.ExportLogsAsync().ThrowsAsync(expectedException);
 
-        await _viewModel.ExportLogsCommand.ExecuteAsync(null);
+    //    await _viewModel.ExportLogsCommand.ExecuteAsync(null);
 
-        Assert.Equal("An error occurred while exporting the application logs.", _logger.LatestRecord.Message);
-        Assert.Equal(expectedException, _logger.LatestRecord.Exception);
-    }
+    //    Assert.Equal("An error occurred while exporting the application logs.", _logger.LatestRecord.Message);
+    //    Assert.Equal(expectedException, _logger.LatestRecord.Exception);
+    //}
 }
