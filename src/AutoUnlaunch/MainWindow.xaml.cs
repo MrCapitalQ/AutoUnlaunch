@@ -60,6 +60,24 @@ public sealed partial class MainWindow : WindowEx
             };
             r.RootFrame.Navigate(m.SourcePageType, m.Parameter, transitionInfo);
         });
+
+        messenger.Register<MainWindow, ShowDialogMessage>(this, async (r, m) =>
+        {
+            if (r.Content.XamlRoot is null)
+                return;
+
+            var dialog = new ContentDialog()
+            {
+                Title = m.Title,
+                Content = m.Message,
+                CloseButtonText = "Ok",
+                DefaultButton = ContentDialogButton.Close,
+                XamlRoot = r.Content.XamlRoot,
+                Style = Application.Current.Resources["DefaultContentDialogStyle"] as Style
+            };
+
+            await dialog.ShowAsync();
+        });
     }
 
     private async void AppWindow_Closing(AppWindow sender, AppWindowClosingEventArgs args)
@@ -95,7 +113,7 @@ public sealed partial class MainWindow : WindowEx
 
     private async Task<ContentDialogResult> ShowCloseDialog()
     {
-        if (_isDialogVisible)
+        if (_isDialogVisible || Content.XamlRoot is null)
             return ContentDialogResult.None;
 
         _isDialogVisible = true;

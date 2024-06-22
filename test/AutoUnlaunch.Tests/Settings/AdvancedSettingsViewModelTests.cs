@@ -1,9 +1,11 @@
-﻿using Microsoft.Extensions.Logging;
+﻿using CommunityToolkit.Mvvm.Messaging;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Testing;
 using Microsoft.Extensions.Time.Testing;
 using MrCapitalQ.AutoUnlaunch.Core.AppData;
 using MrCapitalQ.AutoUnlaunch.Core.Logging;
 using MrCapitalQ.AutoUnlaunch.Settings;
+using MrCapitalQ.AutoUnlaunch.Shared;
 using NSubstitute.ExceptionExtensions;
 
 namespace MrCapitalQ.AutoUnlaunch.Tests.Settings;
@@ -13,6 +15,7 @@ public class AdvancedSettingsViewModelTests
     private readonly ISettingsService _settingsService;
     private readonly ILogLevelManager _logLevelManager;
     private readonly ILogExporter _logExporter;
+    private readonly IMessenger _messenger;
     private readonly FakeLogger<AdvancedSettingsViewModel> _logger;
     private readonly FakeTimeProvider _timeProvider;
 
@@ -23,10 +26,15 @@ public class AdvancedSettingsViewModelTests
         _settingsService = Substitute.For<ISettingsService>();
         _logLevelManager = Substitute.For<ILogLevelManager>();
         _logExporter = Substitute.For<ILogExporter>();
+        _messenger = Substitute.For<IMessenger>();
         _logger = new FakeLogger<AdvancedSettingsViewModel>();
         _timeProvider = new FakeTimeProvider();
 
-        _viewModel = new(_settingsService, _logLevelManager, _logExporter, _logger);
+        _viewModel = new(_settingsService,
+            _logLevelManager,
+            _logExporter,
+            _messenger,
+            _logger);
     }
 
     [Fact]
@@ -35,7 +43,11 @@ public class AdvancedSettingsViewModelTests
         var expected = AppExitBehavior.Stop;
         _settingsService.GetAppExitBehavior().Returns(expected);
 
-        var viewModel = new AdvancedSettingsViewModel(_settingsService, _logLevelManager, _logExporter, _logger);
+        var viewModel = new AdvancedSettingsViewModel(_settingsService,
+            _logLevelManager,
+            _logExporter,
+            _messenger,
+            _logger);
 
         Assert.Equal(expected, viewModel.SelectedExitBehavior.Value);
     }
@@ -46,7 +58,11 @@ public class AdvancedSettingsViewModelTests
         var expected = AppExitBehavior.RunInBackground;
         _settingsService.GetAppExitBehavior().Returns((AppExitBehavior)100);
 
-        var viewModel = new AdvancedSettingsViewModel(_settingsService, _logLevelManager, _logExporter, _logger);
+        var viewModel = new AdvancedSettingsViewModel(_settingsService,
+            _logLevelManager,
+            _logExporter,
+            _messenger,
+            _logger);
 
         Assert.Equal(expected, viewModel.SelectedExitBehavior.Value);
     }
@@ -57,7 +73,11 @@ public class AdvancedSettingsViewModelTests
         var expected = LogLevel.Debug;
         _settingsService.GetMinimumLogLevel().Returns(expected);
 
-        var viewModel = new AdvancedSettingsViewModel(_settingsService, _logLevelManager, _logExporter, _logger);
+        var viewModel = new AdvancedSettingsViewModel(_settingsService,
+            _logLevelManager,
+            _logExporter,
+            _messenger,
+            _logger);
 
         Assert.Equal(expected, viewModel.SelectedLogLevel.Value);
     }
@@ -68,7 +88,11 @@ public class AdvancedSettingsViewModelTests
         var expected = LogLevel.Information;
         _settingsService.GetMinimumLogLevel().Returns((LogLevel)100);
 
-        var viewModel = new AdvancedSettingsViewModel(_settingsService, _logLevelManager, _logExporter, _logger);
+        var viewModel = new AdvancedSettingsViewModel(_settingsService,
+            _logLevelManager,
+            _logExporter,
+            _messenger,
+            _logger);
 
         Assert.Equal(expected, viewModel.SelectedLogLevel.Value);
     }
@@ -121,14 +145,16 @@ public class AdvancedSettingsViewModelTests
     }
 
     [Fact]
-    public async Task ExportLogsCommand_ExceptionThrown_LogsError()
+    public async Task ExportLogsCommand_ExceptionThrown_LogsErrorAndShowsDialogMessage()
     {
         var expectedException = new Exception("Test exception");
         _logExporter.ExportLogsAsync().ThrowsAsync(expectedException);
+        var message = new ShowDialogMessage("Error", "Something went wrong while exporting the logs.");
 
         await _viewModel.ExportLogsCommand.ExecuteAsync(null);
 
         Assert.Equal("An error occurred while exporting the application logs.", _logger.LatestRecord.Message);
         Assert.Equal(expectedException, _logger.LatestRecord.Exception);
+        _messenger.Received(1).Send(message, Arg.Any<TestMessengerToken>());
     }
 }
