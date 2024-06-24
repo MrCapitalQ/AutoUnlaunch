@@ -131,6 +131,7 @@ internal partial class SettingsViewModel : ObservableObject
         catch (Exception ex)
         {
             _logger.LogError(ex, "An error occurred while updating application startup state.");
+            _messenger.Send(new ShowDialogMessage("Error", "Something went wrong while updating the application startup state."));
         }
     }
 }

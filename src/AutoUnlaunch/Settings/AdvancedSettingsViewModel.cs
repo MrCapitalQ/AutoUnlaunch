@@ -1,5 +1,6 @@
 ﻿using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using CommunityToolkit.Mvvm.Messaging;
 using Microsoft.Extensions.Logging;
 using MrCapitalQ.AutoUnlaunch.Core.AppData;
 using MrCapitalQ.AutoUnlaunch.Core.Logging;
@@ -12,6 +13,7 @@ internal partial class AdvancedSettingsViewModel : ObservableObject
     private readonly ISettingsService _settingsService;
     private readonly ILogLevelManager _logLevelManager;
     private readonly ILogExporter _logExporter;
+    private readonly IMessenger _messenger;
     private readonly ILogger<AdvancedSettingsViewModel> _logger;
 
     [ObservableProperty]
@@ -29,11 +31,13 @@ internal partial class AdvancedSettingsViewModel : ObservableObject
     public AdvancedSettingsViewModel(ISettingsService settingsService,
         ILogLevelManager logLevelManager,
         ILogExporter logExporter,
+        IMessenger messenger,
         ILogger<AdvancedSettingsViewModel> logger)
     {
         _settingsService = settingsService;
         _logLevelManager = logLevelManager;
         _logExporter = logExporter;
+        _messenger = messenger;
         _logger = logger;
 
         SelectedExitBehavior = ExitBehaviorOptions.FirstOrDefault(x => x.Value == _settingsService.GetAppExitBehavior())
@@ -69,6 +73,7 @@ internal partial class AdvancedSettingsViewModel : ObservableObject
         catch (Exception ex)
         {
             _logger.LogError(ex, "An error occurred while exporting the application logs.");
+            _messenger.Send(new ShowDialogMessage("Error", "Something went wrong while exporting the logs."));
         }
         finally
         {

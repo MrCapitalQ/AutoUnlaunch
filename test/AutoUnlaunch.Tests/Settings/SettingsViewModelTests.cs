@@ -127,11 +127,13 @@ public class SettingsViewModelTests
     {
         var expectedException = new Exception("Test exception.");
         _startupTaskService.GetStartupStateAsync().ThrowsAsync(expectedException);
+        var message = new ShowDialogMessage("Error", "Something went wrong while updating the application startup state.");
 
         _viewModel.IsStartupOn = true;
 
         Assert.Equal("An error occurred while updating application startup state.", _logger.LatestRecord.Message);
         Assert.Equal(expectedException, _logger.LatestRecord.Exception);
+        _messenger.Received(1).Send(message, Arg.Any<TestMessengerToken>());
     }
 
     [Fact]
