@@ -26,7 +26,7 @@ internal class LauncherChildProcessChecker
 
                 Process.GetProcessById(_currentActivityProcessId.Value);
 
-                _logger.LogDebug("Cached child process {ProcessId} of {ProcessName} is still running.",
+                _logger.LogTrace("Cached child process {ProcessId} of {ProcessName} is still running.",
                     _currentActivityProcessId,
                     launcherProcessName);
 

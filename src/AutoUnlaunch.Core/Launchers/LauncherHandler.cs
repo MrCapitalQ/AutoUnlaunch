@@ -3,40 +3,48 @@ using MrCapitalQ.AutoUnlaunch.Core.AppData;
 
 namespace MrCapitalQ.AutoUnlaunch.Core.Launchers;
 
-public abstract class LauncherHandler : ILauncherHandler
+public abstract class LauncherHandler(LauncherSettingsService launcherSettingsService,
+    TimeProvider timeProvider,
+    ILogger logger) : ILauncherHandler
 {
-    private readonly LauncherSettingsService _launcherSettingsService;
-    protected readonly TimeProvider _timeProvider;
-    protected readonly ILogger _logger;
+    private readonly LauncherSettingsService _launcherSettingsService = launcherSettingsService;
+    protected readonly TimeProvider _timeProvider = timeProvider;
+    protected readonly ILogger _logger = logger;
 
+    private bool? _isLauncherCheckEnabled;
+    private bool? _isLauncherRunning;
     private bool _shouldStopLauncher = false;
     private DateTimeOffset? _scheduledStopTime;
 
-    protected LauncherHandler(LauncherSettingsService launcherSettingsService,
-        TimeProvider timeProvider,
-        ILogger logger)
-    {
-        _launcherSettingsService = launcherSettingsService;
-        _timeProvider = timeProvider;
-        _logger = logger;
-    }
-
     public async Task InvokeAsync(CancellationToken cancellationToken)
     {
-        if (_launcherSettingsService.GetIsLauncherEnabled() != true)
+        var isLauncherCheckEnabled = _launcherSettingsService.GetIsLauncherEnabled() ?? false;
+        if (isLauncherCheckEnabled != _isLauncherCheckEnabled)
         {
-            _logger.LogTrace("Launcher handler for {LauncherName} is disabled.", LauncherName);
-            return;
+            _isLauncherCheckEnabled = isLauncherCheckEnabled;
+            _logger.LogDebug("Launcher handler for {LauncherName} is {LauncherHandlerState}.",
+                LauncherName,
+                _isLauncherCheckEnabled == true ? "enabled" : "disabled");
         }
-        else
-            _logger.LogTrace("Launcher handler for {LauncherName} invoked.", LauncherName);
 
-        if (!await IsLauncherRunningAsync(cancellationToken))
+        if (_isLauncherCheckEnabled != true)
+            return;
+
+        _logger.LogTrace("Launcher handler for {LauncherName} invoked.", LauncherName);
+
+        var isLauncherRunning = await IsLauncherRunningAsync(cancellationToken);
+        if (_isLauncherRunning != isLauncherRunning)
+        {
+            _isLauncherRunning = isLauncherRunning;
+            _logger.LogDebug("{LauncherName} is currently {LauncherRunningState}.",
+                LauncherName,
+                _isLauncherRunning == true ? "running" : "not running");
+        }
+
+        if (_isLauncherRunning != true)
         {
             if (_scheduledStopTime is not null)
                 _logger.LogInformation("{LauncherName} is not currently running. Cancelling scheduled stop.", LauncherName);
-            else
-                _logger.LogTrace("{LauncherName} is not currently running.", LauncherName);
 
             _shouldStopLauncher = false;
             _scheduledStopTime = null;
