@@ -32,8 +32,7 @@ So I don't like game launchers. I just want to be able to launch a game from an 
 ## Building
 ### Prerequisites
 - Visual Studio 2022
-  - .NET desktop development workload
-  - Universal Windows Platform development workload
+  - Windows application development workload
   - Windows 11 SDK (10.0.22621.0)
 - .NET 8 SDK
 
