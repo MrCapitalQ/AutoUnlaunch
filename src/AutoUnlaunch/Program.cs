@@ -1,4 +1,5 @@
 ﻿using CommunityToolkit.Mvvm.Messaging;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Windows.AppLifecycle;
@@ -63,6 +64,9 @@ internal class Program
 
         var host = builder.Build();
 
+        var configuration = host.Services.GetRequiredService<IConfiguration>();
+        configuration["Logging:LogLevel:Default"] = "Debug";
+        (configuration as IConfigurationRoot)?.Reload();
         var settingsService = host.Services.GetRequiredService<ISettingsService>();
         host.Services.GetRequiredService<ILogLevelManager>().SetMinimumLogLevel(settingsService.GetMinimumLogLevel());
 
