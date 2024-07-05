@@ -9,6 +9,7 @@ namespace MrCapitalQ.AutoUnlaunch.Infrastructure.Launchers;
 internal class GogLauncherHandler(TimeProvider timeProvider,
     GogSettingsService gogSettingsService,
     LauncherChildProcessChecker childProcessChecker,
+    ProcessWindowService processWindowService,
     ILogger<GogLauncherHandler> logger)
     : LauncherHandler(gogSettingsService, timeProvider, logger)
 {
@@ -25,6 +26,7 @@ internal class GogLauncherHandler(TimeProvider timeProvider,
 
     private readonly GogSettingsService _gogSettingsService = gogSettingsService;
     private readonly LauncherChildProcessChecker _childProcessChecker = childProcessChecker;
+    private readonly ProcessWindowService _processWindowService = processWindowService;
 
     protected override string LauncherName => "GOG Galaxy";
 
@@ -62,6 +64,15 @@ internal class GogLauncherHandler(TimeProvider timeProvider,
                     stopMethod,
                     LauncherName);
                 break;
+        }
+    }
+
+    protected override async Task OnLauncherActivityStarted(CancellationToken cancellationToken)
+    {
+        using var launcherProcessesResult = ProcessHelper.GetSessionProcessesByName(LauncherProcessName);
+        foreach (var process in launcherProcessesResult.Items)
+        {
+            await _processWindowService.EnsureWindowsClosedAsync(process.Id);
         }
     }
 

@@ -34,8 +34,6 @@ public class EpicSettingsViewModelTests
         _applicationDataStore.GetValue("Epic_StopDelay").Returns(expectedDelay);
         var expectedStopMethod = LauncherStopMethod.CloseMainWindow;
         _applicationDataStore.GetValue("Epic_StopMethod").Returns((int)expectedStopMethod);
-        var expectedMinimizeSetting = true;
-        _applicationDataStore.GetValue("Epic_MinimizesOnActivityEnd").Returns(expectedMinimizeSetting);
 
         var viewModel = new EpicSettingsViewModel(new EpicSettingsService(_applicationDataStore),
             _messenger,

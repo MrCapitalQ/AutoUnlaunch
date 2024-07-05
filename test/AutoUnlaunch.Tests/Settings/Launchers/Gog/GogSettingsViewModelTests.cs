@@ -33,8 +33,8 @@ public class GogSettingsViewModelTests
         _applicationDataStore.GetValue("GOG_StopDelay").Returns(expectedDelay);
         var expectedStopMethod = LauncherStopMethod.RequestShutdown;
         _applicationDataStore.GetValue("GOG_StopMethod").Returns((int)expectedStopMethod);
-        var expectedMinimizeSetting = true;
-        _applicationDataStore.GetValue("GOG_MinimizesOnActivityEnd").Returns(expectedMinimizeSetting);
+        var expectedHideSetting = true;
+        _applicationDataStore.GetValue("GOG_HidesOnActivityEnd").Returns(expectedHideSetting);
 
         var viewModel = new GogSettingsViewModel(new GogSettingsService(_applicationDataStore),
             _messenger,
@@ -43,6 +43,7 @@ public class GogSettingsViewModelTests
         Assert.Equal(expectedIsEnabled, viewModel.IsEnabled);
         Assert.Equal(expectedDelay, viewModel.SelectedDelay.Value);
         Assert.Equal(expectedStopMethod, viewModel.SelectedStopMethod.Value);
+        Assert.Equal(expectedHideSetting, viewModel.HidesOnActivityEnd);
     }
 
     [Fact]
@@ -111,6 +112,18 @@ public class GogSettingsViewModelTests
 
         Assert.Equal(expected, _viewModel.SelectedStopMethod);
         _applicationDataStore.Received(1).SetValue("GOG_StopMethod", (int)expected.Value);
+    }
+
+    [Fact]
+    public void SetHidesOnActivityEnd_SavesSetting()
+    {
+        _applicationDataStore.ClearReceivedCalls();
+        var expected = true;
+
+        _viewModel.HidesOnActivityEnd = expected;
+
+        Assert.Equal(expected, _viewModel.IsEnabled);
+        _applicationDataStore.Received(1).SetValue("GOG_HidesOnActivityEnd", expected);
     }
 
     [Fact]

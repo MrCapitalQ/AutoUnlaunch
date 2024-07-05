@@ -141,7 +141,7 @@
                                       SelectedItem="{x:Bind _viewModel.GogSettings.SelectedStopMethod, Mode=TwoWay}"
                                       DisplayMemberPath="Display" />
                         </toolkit:SettingsCard>
-                        <toolkit:SettingsCard Header="Tips"
+                        <toolkit:SettingsCard Header="More options and tips"
                                               IsEnabled="{x:Bind _viewModel.GogSettings.IsEnabled, Mode=OneWay}"
                                               IsClickEnabled="True"
                                               Command="{x:Bind _viewModel.GogSettings.MoreCommand}" />

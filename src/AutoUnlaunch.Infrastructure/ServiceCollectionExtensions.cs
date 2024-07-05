@@ -33,6 +33,7 @@ public static class ServiceCollectionExtensions
     {
         services.AddSingleton<ILauncherHandler, SteamLauncherHandler>();
         services.TryAddTransient<SteamSettingsService>();
+        services.TryAddTransient<ProcessWindowService>();
         services.AddProtocolLauncher();
         return services;
     }
@@ -50,6 +51,7 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<ILauncherHandler, GogLauncherHandler>();
         services.TryAddTransient<GogSettingsService>();
         services.TryAddTransient<LauncherChildProcessChecker>();
+        services.TryAddTransient<ProcessWindowService>();
         return services;
     }
 

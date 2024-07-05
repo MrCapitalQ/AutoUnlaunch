@@ -12,6 +12,7 @@ public interface IGogSettingsViewModel : INotifyPropertyChanged
     ComboBoxOption<int> SelectedDelay { get; set; }
     IEnumerable<ComboBoxOption<LauncherStopMethod>> StopMethodOptions { get; }
     ComboBoxOption<LauncherStopMethod> SelectedStopMethod { get; set; }
+    bool HidesOnActivityEnd { get; set; }
     IRelayCommand MoreCommand { get; }
     IAsyncRelayCommand OpenGogGalaxyCommand { get; }
 }

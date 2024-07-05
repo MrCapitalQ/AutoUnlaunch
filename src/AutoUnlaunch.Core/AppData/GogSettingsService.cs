@@ -1,9 +1,12 @@
 ﻿namespace MrCapitalQ.AutoUnlaunch.Core.AppData;
 
-public class GogSettingsService : LauncherSettingsService
+public class GogSettingsService(IApplicationDataStore applicationDataStore)
+    : LauncherSettingsService(applicationDataStore)
 {
-    public GogSettingsService(IApplicationDataStore applicationDataStore) : base(applicationDataStore)
-    { }
+    private const string HidesOnActivityEndSettingsKey = "HidesOnActivityEnd";
 
     protected override string LauncherKey => "GOG";
+
+    public bool? GetHidesOnActivityEnd() => GetValue<bool?>(HidesOnActivityEndSettingsKey);
+    public void SetHidesOnActivityEnd(bool isEnabled) => SetValue(HidesOnActivityEndSettingsKey, isEnabled);
 }

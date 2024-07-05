@@ -97,8 +97,9 @@ internal class EpicLauncherHandler(TimeProvider timeProvider,
 
                     foreach (var process in processesWithMainWindow)
                     {
-                        _logger.LogInformation("Closing current main window with title '{WindowTitle}' for process {ProcessName} ({ProcessId}).",
+                        _logger.LogInformation("Closing current main window with title '{WindowTitle}' ({WindowHandle}) for process {ProcessName} ({ProcessId}).",
                             process.MainWindowTitle,
+                            process.MainWindowHandle,
                             process.ProcessName,
                             process.Id);
 
