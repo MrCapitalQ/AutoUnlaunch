@@ -31,7 +31,7 @@ public class LauncherHandlerTests
         await _launcherHandler.InvokeAsync(CancellationToken.None);
 
         Assert.Equal("Launcher handler for TestLauncher is disabled.", _logger.LatestRecord.Message);
-        Assert.Equal(LogLevel.Trace, _logger.LatestRecord.Level);
+        Assert.Equal(LogLevel.Debug, _logger.LatestRecord.Level);
         _applicationDataStore.Received(1).GetValue(TestLauncherSettingsService.IsLauncherEnabledTestKey);
     }
 
@@ -43,8 +43,8 @@ public class LauncherHandlerTests
         await _launcherHandler.InvokeAsync(CancellationToken.None);
 
         Assert.True(_launcherHandler.CalledIsLauncherRunningAsync);
-        Assert.Equal("TestLauncher is not currently running.", _logger.LatestRecord.Message);
-        Assert.Equal(LogLevel.Trace, _logger.LatestRecord.Level);
+        Assert.Equal("TestLauncher is currently not running.", _logger.LatestRecord.Message);
+        Assert.Equal(LogLevel.Debug, _logger.LatestRecord.Level);
     }
 
     [Fact]

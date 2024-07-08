@@ -1,9 +1,11 @@
 ﻿using CommunityToolkit.Mvvm.Messaging;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Windows.AppLifecycle;
 using MrCapitalQ.AutoUnlaunch;
 using MrCapitalQ.AutoUnlaunch.Core;
+using MrCapitalQ.AutoUnlaunch.Core.AppData;
 using MrCapitalQ.AutoUnlaunch.Core.Logging;
 using MrCapitalQ.AutoUnlaunch.Hosts;
 using MrCapitalQ.AutoUnlaunch.Infrastructure;
@@ -61,6 +63,13 @@ internal class Program
         builder.Services.AddTransient<ILogExporter, LogExporter>();
 
         var host = builder.Build();
+
+        var configuration = host.Services.GetRequiredService<IConfiguration>();
+        configuration["Logging:LogLevel:Default"] = "Debug";
+        (configuration as IConfigurationRoot)?.Reload();
+        var settingsService = host.Services.GetRequiredService<ISettingsService>();
+        host.Services.GetRequiredService<ILogLevelManager>().SetMinimumLogLevel(settingsService.GetMinimumLogLevel());
+
         host.Run();
     }
 }
