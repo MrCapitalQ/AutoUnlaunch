@@ -118,7 +118,7 @@ public class EASettingsServiceTests
     }
 
     [Fact]
-    public void GetHidesOnActivityStart_DataStoreReturnsValue_ReturnsValue()
+    public void GetMinimizesOnActivityStart_DataStoreReturnsValue_ReturnsValue()
     {
         _applicationDataStore.GetValue(MinimizesOnActivityEndKey).Returns(true);
 
@@ -129,7 +129,7 @@ public class EASettingsServiceTests
     }
 
     [Fact]
-    public void GetHidesOnActivityStart_DataStoreReturnsNull_ReturnsNull()
+    public void GetMinimizesOnActivityStart_DataStoreReturnsNull_ReturnsNull()
     {
         _applicationDataStore.GetValue(MinimizesOnActivityEndKey).Returns(null);
 
@@ -140,7 +140,7 @@ public class EASettingsServiceTests
     }
 
     [Fact]
-    public void SetHidesOnActivityStart_SavesValueInApplicationDataStore()
+    public void SetMinimizesOnActivityStart_SavesValueInApplicationDataStore()
     {
         var value = true;
 

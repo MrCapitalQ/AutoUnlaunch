@@ -83,8 +83,9 @@ internal class EALauncherHandler(TimeProvider timeProvider,
 
                     foreach (var process in processes)
                     {
-                        _logger.LogInformation("Closing current main window with title '{WindowTitle}' for process {ProcessName} ({ProcessId}).",
+                        _logger.LogInformation("Closing current main window with title '{WindowTitle}' ({WindowHandle}) for process {ProcessName} ({ProcessId}).",
                             process.MainWindowTitle,
+                            process.MainWindowHandle,
                             process.ProcessName,
                             process.Id);
 
@@ -110,8 +111,9 @@ internal class EALauncherHandler(TimeProvider timeProvider,
         using var launcherProcessesResult = ProcessHelper.GetSessionProcessesByName(LauncherProcessName);
         foreach (var process in launcherProcessesResult.Items)
         {
-            _logger.LogInformation("Minimizing current main window with title '{WindowTitle}' for process {ProcessName} ({ProcessId}).",
+            _logger.LogInformation("Minimizing current main window with title '{WindowTitle}' ({WindowHandle}) for process {ProcessName} ({ProcessId}).",
                 process.MainWindowTitle,
+                process.MainWindowHandle,
                 process.ProcessName,
                 process.Id);
 

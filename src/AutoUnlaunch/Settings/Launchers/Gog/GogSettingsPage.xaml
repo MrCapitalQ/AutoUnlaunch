@@ -31,6 +31,12 @@
                     </TransitionCollection>
                 </StackPanel.ChildrenTransitions>
 
+                <toolkit:SettingsCard Header="Hide GOG Galaxy when a game starts"
+                                      HeaderIcon="{ui:FontIcon Glyph=&#xE768;}"
+                                      Description="Enable this when the native option to hide GOG Galaxy doesn't work in some cases like when using custom executables">
+                    <ToggleSwitch IsOn="{x:Bind _viewModel.HidesOnActivityEnd, Mode=TwoWay}" />
+                </toolkit:SettingsCard>
+
                 <toolkit:SettingsExpander Header="Tips"
                                           HeaderIcon="{ui:FontIcon Glyph=&#xE82F;}"
                                           IsExpanded="True">

@@ -3,13 +3,13 @@ using Microsoft.Win32;
 using MrCapitalQ.AutoUnlaunch.Core;
 using MrCapitalQ.AutoUnlaunch.Core.AppData;
 using MrCapitalQ.AutoUnlaunch.Core.Launchers;
-using System.Diagnostics;
 
 namespace MrCapitalQ.AutoUnlaunch.Infrastructure.Launchers;
 
 internal class SteamLauncherHandler(TimeProvider timeProvider,
     SteamSettingsService steamSettingsService,
     IProtocolLauncher protocolLauncher,
+    ProcessWindowService processWindowService,
     ILogger<SteamLauncherHandler> logger)
     : LauncherHandler(steamSettingsService, timeProvider, logger)
 {
@@ -19,6 +19,7 @@ internal class SteamLauncherHandler(TimeProvider timeProvider,
 
     private readonly SteamSettingsService _steamSettingsService = steamSettingsService;
     private readonly IProtocolLauncher _protocolLauncher = protocolLauncher;
+    private readonly ProcessWindowService _processWindowService = processWindowService;
 
     protected override string LauncherName => "Steam";
 
@@ -69,31 +70,7 @@ internal class SteamLauncherHandler(TimeProvider timeProvider,
                         return;
                     }
 
-                    var timeout = DateTimeOffset.UtcNow.AddSeconds(1);
-                    while (DateTimeOffset.UtcNow < timeout)
-                    {
-                        try
-                        {
-                            var process = Process.GetProcessById(mainUIProcessId.Value);
-
-                            if (process.MainWindowHandle == 0)
-                            {
-                                await Task.Delay(50, cancellationToken);
-                                continue;
-                            }
-
-                            _logger.LogInformation("Closing current main window with title '{WindowTitle}' for process {ProcessName} ({ProcessId}).",
-                                process.MainWindowTitle,
-                                process.ProcessName,
-                                process.Id);
-
-                            process.CloseMainWindow();
-                        }
-                        catch
-                        {
-                            break;
-                        }
-                    }
+                    await _processWindowService.EnsureWindowsClosedAsync(mainUIProcessId.Value, continueUntilTimeout: true);
                 }
                 else
                     _logger.LogError("Request to gracefully shutdown {LauncherName} failed.", LauncherName);
@@ -106,25 +83,23 @@ internal class SteamLauncherHandler(TimeProvider timeProvider,
         }
     }
 
-    protected override Task OnLauncherActivityStarted(CancellationToken cancellationToken)
+    protected override async Task OnLauncherActivityStarted(CancellationToken cancellationToken)
     {
         if (_steamSettingsService.GetHidesOnActivityStart() != true)
-            return Task.CompletedTask;
+            return;
 
-        CloseMainWindows();
-        return Task.CompletedTask;
+        await CloseMainWindowsAsync();
     }
 
-    protected override Task OnLauncherActivityEnded(CancellationToken cancellationToken)
+    protected override async Task OnLauncherActivityEnded(CancellationToken cancellationToken)
     {
         if (_steamSettingsService.GetHidesOnActivityEnd() != true)
-            return Task.CompletedTask;
+            return;
 
-        CloseMainWindows();
-        return Task.CompletedTask;
+        await CloseMainWindowsAsync();
     }
 
-    private void CloseMainWindows()
+    private async Task CloseMainWindowsAsync()
     {
         // The Steam UI may show different windows (commonly splash screens) as its main window so close the
         // current one and repeat until there are no more main windows or until timing out after 1 second.
@@ -135,25 +110,7 @@ internal class SteamLauncherHandler(TimeProvider timeProvider,
             return;
         }
 
-        var isWindowVisible = true;
-        var timeout = _timeProvider.GetUtcNow().AddSeconds(1);
-        while (isWindowVisible && _timeProvider.GetUtcNow() < timeout)
-        {
-            var process = Process.GetProcessById(mainUIProcessId.Value);
-
-            if (process.MainWindowHandle == 0)
-            {
-                isWindowVisible = false;
-                continue;
-            }
-
-            _logger.LogInformation("Closing current main window with title '{WindowTitle}' for process {ProcessName} ({ProcessId}).",
-                process.MainWindowTitle,
-                process.ProcessName,
-                process.Id);
-
-            process.CloseMainWindow();
-        }
+        await _processWindowService.EnsureWindowsClosedAsync(mainUIProcessId.Value);
     }
 
     private static int? GetMainUIProcessId()

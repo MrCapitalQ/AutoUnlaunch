@@ -1,4 +1,5 @@
-﻿using CommunityToolkit.Mvvm.Input;
+﻿using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
 using CommunityToolkit.Mvvm.Messaging;
 using Microsoft.UI.Xaml.Media.Animation;
 using MrCapitalQ.AutoUnlaunch.Core;
@@ -20,16 +21,23 @@ internal partial class GogSettingsViewModel : LauncherSettingsViewModel, IGogSet
         .ToList();
     private static readonly Uri s_launchUri = new(LauncherUriProtocols.Gog);
 
+    private readonly GogSettingsService _settingsService;
     private readonly IMessenger _messenger;
     private readonly IProtocolLauncher _protocolLauncher;
+
+    [ObservableProperty]
+    private bool _hidesOnActivityEnd;
 
     public GogSettingsViewModel(GogSettingsService settingsService,
         IMessenger messenger,
         IProtocolLauncher protocolLauncher)
         : base(settingsService, LauncherStopMethod.RequestShutdown)
     {
+        _settingsService = settingsService;
         _messenger = messenger;
         _protocolLauncher = protocolLauncher;
+
+        HidesOnActivityEnd = _settingsService.GetHidesOnActivityEnd() ?? false;
     }
 
     public override IEnumerable<ComboBoxOption<LauncherStopMethod>> StopMethodOptions => s_stopMethodOptions;
@@ -39,4 +47,6 @@ internal partial class GogSettingsViewModel : LauncherSettingsViewModel, IGogSet
 
     [RelayCommand]
     private async Task OpenGogGalaxyAsync() => await _protocolLauncher.LaunchUriAsync(s_launchUri);
+
+    partial void OnHidesOnActivityEndChanged(bool value) => _settingsService.SetHidesOnActivityEnd(value);
 }

@@ -7,6 +7,7 @@ public class GogSettingsServiceTests
     private const string IsLauncherEnabledKey = "GOG_IsEnabled";
     private const string LauncherStopDelayTestKey = "GOG_StopDelay";
     private const string LauncherStopMethodTestKey = "GOG_StopMethod";
+    private const string HidesOnActivityEndKey = "GOG_HidesOnActivityEnd";
     private readonly IApplicationDataStore _applicationDataStore;
 
     private readonly GogSettingsService _gogSettingsService;
@@ -114,5 +115,37 @@ public class GogSettingsServiceTests
         _gogSettingsService.SetLauncherStopMethod(value);
 
         _applicationDataStore.Received(1).SetValue(LauncherStopMethodTestKey, (int)value);
+    }
+
+    [Fact]
+    public void GetHidesOnActivityStart_DataStoreReturnsValue_ReturnsValue()
+    {
+        _applicationDataStore.GetValue(HidesOnActivityEndKey).Returns(true);
+
+        var actual = _gogSettingsService.GetHidesOnActivityEnd();
+
+        Assert.True(actual);
+        _applicationDataStore.Received(1).GetValue(HidesOnActivityEndKey);
+    }
+
+    [Fact]
+    public void GetHidesOnActivityStart_DataStoreReturnsNull_ReturnsNull()
+    {
+        _applicationDataStore.GetValue(HidesOnActivityEndKey).Returns(null);
+
+        var actual = _gogSettingsService.GetHidesOnActivityEnd();
+
+        Assert.Null(actual);
+        _applicationDataStore.Received(1).GetValue(HidesOnActivityEndKey);
+    }
+
+    [Fact]
+    public void SetHidesOnActivityStart_SavesValueInApplicationDataStore()
+    {
+        var value = true;
+
+        _gogSettingsService.SetHidesOnActivityEnd(value);
+
+        _applicationDataStore.Received(1).SetValue(HidesOnActivityEndKey, value);
     }
 }
