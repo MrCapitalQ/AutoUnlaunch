@@ -5,6 +5,7 @@ namespace MrCapitalQ.AutoUnlaunch.Infrastructure;
 
 internal class ProcessWindowService(TimeProvider timeProvider, ILogger<ProcessWindowService> logger)
 {
+    private const int CheckDelayMilliseconds = 50;
     private readonly TimeProvider _timeProvider = timeProvider;
     private readonly ILogger<ProcessWindowService> _logger = logger;
 
@@ -20,7 +21,18 @@ internal class ProcessWindowService(TimeProvider timeProvider, ILogger<ProcessWi
     /// </param>
     public async Task EnsureWindowsClosedAsync(int processId, TimeSpan? timeout = null, bool continueUntilTimeout = false)
     {
-        var endTime = _timeProvider.GetUtcNow().Add(timeout ?? TimeSpan.FromSeconds(1));
+        var actualTimeout = timeout ?? TimeSpan.FromSeconds(1);
+
+        if (continueUntilTimeout)
+            _logger.LogInformation("Closing all windows for process {ProcessId} until timing out after {Timeout} ms.",
+                processId,
+                actualTimeout.TotalMilliseconds);
+        else
+            _logger.LogInformation("Closing all windows for process {ProcessId} until no open windows or timing out after {Timeout} ms.",
+                processId,
+                actualTimeout.TotalMilliseconds);
+
+        var endTime = _timeProvider.GetUtcNow().Add(actualTimeout);
         nint? previouslyClosedWindow = null;
 
         while (_timeProvider.GetUtcNow() < endTime)
@@ -32,15 +44,25 @@ internal class ProcessWindowService(TimeProvider timeProvider, ILogger<ProcessWi
                 if (process.MainWindowHandle == 0)
                 {
                     if (!continueUntilTimeout)
-                        break;
+                    {
+                        _logger.LogInformation("Process {ProcessId} has no open windows.", processId);
+                        return;
+                    }
 
-                    await Task.Delay(50);
+                    _logger.LogDebug("Process {ProcessId} has no open windows. Checking again in {Delay} ms.",
+                        process.Id,
+                        CheckDelayMilliseconds);
+                    await Task.Delay(CheckDelayMilliseconds);
                     continue;
                 }
 
                 if (previouslyClosedWindow == process.MainWindowHandle)
                 {
-                    await Task.Delay(50);
+                    _logger.LogDebug("Process {ProcessId} main window {WindowHandle} that was previously requested to be closed is still open. Checking again in {Delay} ms.",
+                        process.Id,
+                        process.MainWindowHandle,
+                        CheckDelayMilliseconds);
+                    await Task.Delay(CheckDelayMilliseconds);
                     continue;
                 }
 
@@ -53,8 +75,9 @@ internal class ProcessWindowService(TimeProvider timeProvider, ILogger<ProcessWi
                 process.CloseMainWindow();
                 previouslyClosedWindow = process.MainWindowHandle;
             }
-            catch
+            catch (ArgumentException)
             {
+                _logger.LogWarning("Process {ProcessId} is not running.", processId);
                 break;
             }
         }
