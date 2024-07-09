@@ -3,10 +3,12 @@ using Microsoft.Win32;
 using MrCapitalQ.AutoUnlaunch.Core;
 using MrCapitalQ.AutoUnlaunch.Core.AppData;
 using MrCapitalQ.AutoUnlaunch.Core.Launchers;
+using System.Diagnostics;
+using System.Text.RegularExpressions;
 
 namespace MrCapitalQ.AutoUnlaunch.Infrastructure.Launchers;
 
-internal class SteamLauncherHandler(TimeProvider timeProvider,
+internal partial class SteamLauncherHandler(TimeProvider timeProvider,
     SteamSettingsService steamSettingsService,
     IProtocolLauncher protocolLauncher,
     ProcessWindowService processWindowService,
@@ -22,6 +24,51 @@ internal class SteamLauncherHandler(TimeProvider timeProvider,
     private readonly ProcessWindowService _processWindowService = processWindowService;
 
     protected override string LauncherName => "Steam";
+
+    public override async Task InvokeAsync(CancellationToken cancellationToken)
+    {
+        var programsShortcutDirectoryPath = Environment.GetFolderPath(Environment.SpecialFolder.Programs);
+        var steamStartMenuPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Programs), @"Steam");
+        var shortcutPaths = Directory.GetFiles(steamStartMenuPath, "*.url");
+
+        foreach (var shortcutPath in shortcutPaths)
+        {
+            var content = await File.ReadAllTextAsync(shortcutPath, cancellationToken);
+
+            var match = UrlShortcutTargetRegex().Match(content);
+            if (match.Success)
+            {
+                var silentArgument = !string.IsNullOrWhiteSpace(match.Groups[1].Value);
+                if (!silentArgument)
+                {
+                    content = UrlShortcutTargetRegex().Replace(content, m => m.Groups[0].Value + "\" -silent");
+                    File.WriteAllText(shortcutPath, content);
+                }
+
+                try
+                {
+                    var newShortcutPath = Path.Combine(programsShortcutDirectoryPath, Path.GetFileName(shortcutPath));
+
+                    var moveShortcutCommand = new Process
+                    {
+                        StartInfo = new ProcessStartInfo()
+                        {
+                            FileName = "cmd.exe",
+                            Arguments = $"/C move \"{shortcutPath}\" \"{newShortcutPath}\"",
+                            CreateNoWindow = true
+                        }
+                    };
+                    moveShortcutCommand.Start();
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "");
+                }
+            }
+        }
+
+        await base.InvokeAsync(cancellationToken);
+    }
 
     protected override Task<bool> IsLauncherRunningAsync(CancellationToken cancellationToken)
     {
@@ -128,4 +175,7 @@ internal class SteamLauncherHandler(TimeProvider timeProvider,
             .FirstOrDefault()
             ?.Id;
     }
+
+    [GeneratedRegex(@"URL=steam://rungameid/\d+("" -silent)?")]
+    private static partial Regex UrlShortcutTargetRegex();
 }
