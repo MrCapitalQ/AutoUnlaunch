@@ -1,5 +1,9 @@
-﻿using Microsoft.Extensions.DependencyInjection.Extensions;
+﻿using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using MrCapitalQ.AutoUnlaunch.Core.AppData;
 using MrCapitalQ.AutoUnlaunch.Core.Logging;
 using Serilog;
 using Serilog.Core;
@@ -16,7 +20,7 @@ public static class FileLoggerExtensions
     public static ILoggingBuilder AddFile(this ILoggingBuilder loggingBuilder)
     {
         var loggingLevelSwitch = new LoggingLevelSwitch();
-        loggingBuilder.Services.TryAddSingleton<ILogLevelManager>(new LogLevelManager(loggingLevelSwitch));
+        loggingBuilder.Services.TryAddSingleton<ILogLevelManager>(s => ActivatorUtilities.CreateInstance<LogLevelManager>(s, loggingLevelSwitch));
 
         var logger = new LoggerConfiguration()
             .MinimumLevel.ControlledBy(loggingLevelSwitch)
@@ -29,12 +33,22 @@ public static class FileLoggerExtensions
         return loggingBuilder.AddSerilog(logger, dispose: true);
     }
 
-    private class LogLevelManager(LoggingLevelSwitch loggingLevelSwitch) : ILogLevelManager
+    public static void UseLogLevelSettings(this IHost host)
+    {
+        var settingsService = host.Services.GetRequiredService<ISettingsService>();
+        host.Services.GetRequiredService<ILogLevelManager>().SetMinimumLogLevel(settingsService.GetMinimumLogLevel());
+    }
+
+    private class LogLevelManager(LoggingLevelSwitch loggingLevelSwitch, IConfiguration configuration) : ILogLevelManager
     {
         private readonly LoggingLevelSwitch _loggingLevelSwitch = loggingLevelSwitch;
+        private readonly IConfiguration _configuration = configuration;
 
         public void SetMinimumLogLevel(LogLevel logLevel)
         {
+            _configuration["Logging:LogLevel:Default"] = logLevel.ToString();
+            (_configuration as IConfigurationRoot)?.Reload();
+
             _loggingLevelSwitch.MinimumLevel = logLevel switch
             {
                 LogLevel.Trace => LogEventLevel.Verbose,
