@@ -9,7 +9,8 @@ namespace MrCapitalQ.AutoUnlaunch.Hosts;
 [ExcludeFromCodeCoverage]
 internal partial class SteamShortcutsBackgroundService : BackgroundService
 {
-    private readonly string _programsShortcutDirectoryPath = Environment.GetFolderPath(Environment.SpecialFolder.Programs);
+    private readonly string _programsShortcutsDirectoryPath = Environment.GetFolderPath(Environment.SpecialFolder.Programs);
+    private readonly string _steamStartMenuPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Programs), "Steam");
     private readonly FileSystemWatcher _fileSystemWatcher = new();
     private readonly ILogger<SteamShortcutsBackgroundService> _logger;
 
@@ -18,18 +19,19 @@ internal partial class SteamShortcutsBackgroundService : BackgroundService
         _logger = logger;
 
         _fileSystemWatcher.Created += FileSystemWatcher_Created;
+        _fileSystemWatcher.Deleted += FileSystemWatcher_Deleted;
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        var steamStartMenuPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Programs), "Steam");
-
-        foreach (var shortcutPath in Directory.GetFiles(steamStartMenuPath, "*.url"))
+        foreach (var shortcutPath in Directory.GetFiles(_steamStartMenuPath, "*.url"))
         {
             await TryHandleShortcutAsync(shortcutPath);
         }
 
-        _fileSystemWatcher.Path = steamStartMenuPath;
+        await CleanupShortcutsAsync();
+
+        _fileSystemWatcher.Path = _steamStartMenuPath;
         _fileSystemWatcher.Filter = "*.url";
         _fileSystemWatcher.EnableRaisingEvents = true;
     }
@@ -38,6 +40,152 @@ internal partial class SteamShortcutsBackgroundService : BackgroundService
     {
         _logger.LogTrace("Attempting to handle Steam shortcut {ShortcutPath}.", shortcutPath);
 
+        try
+        {
+            if (File.GetAttributes(shortcutPath).HasFlag(FileAttributes.Hidden))
+            {
+                _logger.LogDebug("Shortcut is hidden. Skipping {ShortcutPath}.", shortcutPath);
+                return;
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to get file attributes of {ShortcutPath}.", shortcutPath);
+            return;
+        }
+
+        if (string.IsNullOrEmpty(await GetSteamShortcutUrlAsync(shortcutPath)))
+        {
+            _logger.LogDebug("Shortcut does not appear to be a Steam shortcut. Skipping {ShortcutPath}.",
+                shortcutPath);
+            return;
+        }
+
+        var newShortcutPath = Path.Combine(_programsShortcutsDirectoryPath, Path.GetFileName(shortcutPath));
+        _logger.LogDebug("Copying Steam shortcut from {ShortcutPath} to {TargetPath}.", shortcutPath, newShortcutPath);
+
+        try
+        {
+            // Executing a copy command because File.Copy() doesn't work properly inside of these directories.
+            var copyShortcutCommand = new Process
+            {
+                StartInfo = new ProcessStartInfo()
+                {
+                    FileName = "cmd.exe",
+                    Arguments = $"/C COPY \"{shortcutPath}\" \"{newShortcutPath}\"",
+                    CreateNoWindow = true
+                }
+            };
+            copyShortcutCommand.Start();
+            await copyShortcutCommand.WaitForExitAsync();
+
+            if (!File.Exists(newShortcutPath))
+                _logger.LogError("Failed to copy Steam shortcut {ShortcutPath} to {TargetPath}.",
+                    shortcutPath,
+                    newShortcutPath);
+            else
+                _logger.LogInformation("Copied Steam shortcut from {ShortcutPath} to {TargetPath}.",
+                    shortcutPath,
+                    newShortcutPath);
+
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to copy Steam shortcut {ShortcutPath} to {TargetPath}.",
+                shortcutPath,
+                newShortcutPath);
+        }
+
+        try
+        {
+            File.SetAttributes(shortcutPath, File.GetAttributes(shortcutPath) | FileAttributes.Hidden);
+            _logger.LogInformation("Added hidden attribute to original Steam shortcut {ShortcutPath}.", shortcutPath);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to add hidden attribute to original Steam shortcut {ShortcutPath}.",
+                shortcutPath);
+        }
+    }
+
+    private async Task RestoreShortcutsAsync()
+    {
+        _logger.LogTrace("Restoring Steam Start menu entries to the Steam folder.");
+
+        foreach (var shortcutPath in Directory.GetFiles(_programsShortcutsDirectoryPath, "*.url"))
+        {
+            if (string.IsNullOrEmpty(await GetSteamShortcutUrlAsync(shortcutPath)))
+            {
+                _logger.LogDebug("Shortcut does not appear to be a Steam shortcut. Skipping {ShortcutPath}.",
+                    shortcutPath);
+                continue;
+            }
+
+            try
+            {
+                File.Delete(shortcutPath);
+                _logger.LogInformation("Deleted shortcut {ShortcutPath}.", shortcutPath);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to delete shortcut {ShortcutPath}.", shortcutPath);
+            }
+        }
+
+        foreach (var shortcutPath in Directory.GetFiles(_steamStartMenuPath, "*.url"))
+        {
+            if (string.IsNullOrEmpty(await GetSteamShortcutUrlAsync(shortcutPath)))
+            {
+                _logger.LogDebug("Shortcut does not appear to be a Steam shortcut. Skipping {ShortcutPath}.",
+                    shortcutPath);
+                continue;
+            }
+
+            try
+            {
+                File.SetAttributes(shortcutPath, File.GetAttributes(shortcutPath) & ~FileAttributes.Hidden);
+                _logger.LogInformation("Removed hidden attribute from original Steam shortcut {ShortcutPath}.",
+                    shortcutPath);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to remove hidden attribute from original Steam shortcut {ShortcutPath}.",
+                    shortcutPath);
+            }
+        }
+
+        _logger.LogInformation("Restored Steam Start menu entries to the Steam folder.");
+    }
+
+    private async Task CleanupShortcutsAsync()
+    {
+        var remainingOriginalShortcutUrls = (await Task.WhenAll(Directory.GetFiles(_steamStartMenuPath, "*.url")
+            .Select(GetSteamShortcutUrlAsync)))
+            .OfType<string>()
+            .ToHashSet();
+
+        foreach (var shortcutPath in Directory.GetFiles(_programsShortcutsDirectoryPath, "*.url"))
+        {
+            if (await GetSteamShortcutUrlAsync(shortcutPath) is not { } shortcutUrl
+                || remainingOriginalShortcutUrls.Contains(shortcutUrl))
+                continue;
+
+            try
+            {
+                File.Delete(shortcutPath);
+                _logger.LogInformation("Original Steam shortcut with matching URL {ShortcutUrl} not found. Deleted shortcut {ShortcutPath}.",
+                    shortcutUrl,
+                    shortcutPath);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to delete shortcut {ShortcutPath}.", shortcutPath);
+            }
+        }
+    }
+
+    private async Task<string?> GetSteamShortcutUrlAsync(string shortcutPath)
+    {
         string content;
         try
         {
@@ -46,59 +194,21 @@ internal partial class SteamShortcutsBackgroundService : BackgroundService
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to read file content of {ShortcutPath}.", shortcutPath);
-            return;
+            return null;
         }
 
         var match = UrlShortcutTargetRegex().Match(content);
         if (!match.Success)
-        {
-            _logger.LogDebug("Shortcut handling is skipped because of an unexpected URL value in {ShortcutPath}.", shortcutPath);
-            return;
-        }
+            return null;
 
-        var silentArgument = !string.IsNullOrWhiteSpace(match.Groups[1].Value);
-        if (!silentArgument)
-        {
-            _logger.LogInformation("Appending silent launch argument for Steam shortcut {ShortcutPath}.", shortcutPath);
-
-            content = UrlShortcutTargetRegex().Replace(content, m => m.Groups[0].Value + "\" -silent");
-            await File.WriteAllTextAsync(shortcutPath, content);
-        }
-
-        var newShortcutPath = Path.Combine(_programsShortcutDirectoryPath, Path.GetFileName(shortcutPath));
-        _logger.LogDebug("Moving Steam shortcut from {ShortcutPath} to {TargetPath}.", shortcutPath, newShortcutPath);
-
-        try
-        {
-            var moveShortcutCommand = new Process
-            {
-                StartInfo = new ProcessStartInfo()
-                {
-                    FileName = "cmd.exe",
-                    Arguments = $"/C move \"{shortcutPath}\" \"{newShortcutPath}\"",
-                    CreateNoWindow = true
-                }
-            };
-            moveShortcutCommand.Start();
-            await moveShortcutCommand.WaitForExitAsync();
-
-            _logger.LogInformation("Moved Steam shortcut from {ShortcutPath} to {TargetPath}.", shortcutPath, newShortcutPath);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Failed to move steam shortcut {ShortcutPath} to {TargetPath}.", shortcutPath, newShortcutPath);
-        }
-    }
-
-    private Task RestoreShortcutAsync(string shortcutPath)
-    {
-        throw new NotImplementedException();
+        return match.Value;
     }
 
     private async void FileSystemWatcher_Created(object sender, FileSystemEventArgs e)
-    {
-        await TryHandleShortcutAsync(e.FullPath);
-    }
+        => await TryHandleShortcutAsync(e.FullPath);
+
+    private async void FileSystemWatcher_Deleted(object sender, FileSystemEventArgs e)
+        => await CleanupShortcutsAsync();
 
     [GeneratedRegex(@"URL=steam://rungameid/\d+("" -silent)?")]
     private static partial Regex UrlShortcutTargetRegex();
