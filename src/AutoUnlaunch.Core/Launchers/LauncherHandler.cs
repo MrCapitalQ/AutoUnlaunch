@@ -16,7 +16,7 @@ public abstract class LauncherHandler(LauncherSettingsService launcherSettingsSe
     private bool _shouldStopLauncher = false;
     private DateTimeOffset? _scheduledStopTime;
 
-    public virtual async Task InvokeAsync(CancellationToken cancellationToken)
+    public async Task InvokeAsync(CancellationToken cancellationToken)
     {
         var isLauncherCheckEnabled = _launcherSettingsService.GetIsLauncherEnabled() ?? false;
         if (isLauncherCheckEnabled != _isLauncherCheckEnabled)
