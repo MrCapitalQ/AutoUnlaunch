@@ -15,6 +15,7 @@ public interface ISteamSettingsViewModel : INotifyPropertyChanged
     bool HidesShutdownScreen { get; set; }
     bool HidesOnActivityStart { get; set; }
     bool HidesOnActivityEnd { get; set; }
+    bool ShowUnnestedInStartMenu { get; set; }
     IRelayCommand MoreCommand { get; }
     IAsyncRelayCommand OpenSteamSettingsCommand { get; }
 }

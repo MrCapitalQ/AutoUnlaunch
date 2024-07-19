@@ -1,5 +1,6 @@
 ﻿using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using MrCapitalQ.AutoUnlaunch.Core.AppData;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Text.RegularExpressions;
@@ -12,10 +13,12 @@ internal partial class SteamShortcutsBackgroundService : BackgroundService
     private readonly string _programsShortcutsDirectoryPath = Environment.GetFolderPath(Environment.SpecialFolder.Programs);
     private readonly string _steamStartMenuPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Programs), "Steam");
     private readonly FileSystemWatcher _fileSystemWatcher = new();
+    private readonly SteamSettingsService _steamSettingsService;
     private readonly ILogger<SteamShortcutsBackgroundService> _logger;
 
-    public SteamShortcutsBackgroundService(ILogger<SteamShortcutsBackgroundService> logger)
+    public SteamShortcutsBackgroundService(SteamSettingsService steamSettingsService, ILogger<SteamShortcutsBackgroundService> logger)
     {
+        _steamSettingsService = steamSettingsService;
         _logger = logger;
 
         _fileSystemWatcher.Created += FileSystemWatcher_Created;
@@ -24,6 +27,13 @@ internal partial class SteamShortcutsBackgroundService : BackgroundService
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
+        if (_steamSettingsService.GetShowUnnestedInStartMenu() is not true)
+        {
+            _fileSystemWatcher.EnableRaisingEvents = false;
+            await RestoreShortcutsAsync();
+            return;
+        }
+
         foreach (var shortcutPath in Directory.GetFiles(_steamStartMenuPath, "*.url"))
         {
             await TryHandleShortcutAsync(shortcutPath);
