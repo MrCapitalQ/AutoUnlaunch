@@ -67,5 +67,9 @@ internal partial class SteamSettingsViewModel : LauncherSettingsViewModel, IStea
 
     partial void OnHidesOnActivityEndChanged(bool value) => _settingsService.SetHidesOnActivityEnd(value);
 
-    partial void OnShowUnnestedInStartMenuChanged(bool value) => _settingsService.SetShowUnnestedInStartMenu(value);
+    partial void OnShowUnnestedInStartMenuChanged(bool value)
+    {
+        _settingsService.SetShowUnnestedInStartMenu(value);
+        _messenger.Send(SteamStartMenuSettingsChangedMessage.Instance);
+    }
 }

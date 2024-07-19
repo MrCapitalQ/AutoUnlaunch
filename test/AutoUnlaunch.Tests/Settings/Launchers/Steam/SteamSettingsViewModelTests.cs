@@ -162,7 +162,7 @@ public class SteamSettingsViewModelTests
     }
 
     [Fact]
-    public void SetShowUnnestedInStartMenu_SavesSetting()
+    public void SetShowUnnestedInStartMenu_SavesSettingAndSendsSteamStartMenuSettingsChangedMessage()
     {
         _applicationDataStore.ClearReceivedCalls();
         var expected = true;
@@ -171,6 +171,7 @@ public class SteamSettingsViewModelTests
 
         Assert.Equal(expected, _viewModel.IsEnabled);
         _applicationDataStore.Received(1).SetValue("Steam_ShowUnnestedInStartMenu", expected);
+        _messenger.Received(1).Send(SteamStartMenuSettingsChangedMessage.Instance, Arg.Any<TestMessengerToken>());
     }
 
     [Fact]

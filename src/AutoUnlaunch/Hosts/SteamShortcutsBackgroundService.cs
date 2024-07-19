@@ -1,6 +1,8 @@
-﻿using Microsoft.Extensions.Hosting;
+﻿using CommunityToolkit.Mvvm.Messaging;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using MrCapitalQ.AutoUnlaunch.Core.AppData;
+using MrCapitalQ.AutoUnlaunch.Shared;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Text.RegularExpressions;
@@ -16,13 +18,18 @@ internal partial class SteamShortcutsBackgroundService : BackgroundService
     private readonly SteamSettingsService _steamSettingsService;
     private readonly ILogger<SteamShortcutsBackgroundService> _logger;
 
-    public SteamShortcutsBackgroundService(SteamSettingsService steamSettingsService, ILogger<SteamShortcutsBackgroundService> logger)
+    public SteamShortcutsBackgroundService(SteamSettingsService steamSettingsService,
+        IMessenger messenger,
+        ILogger<SteamShortcutsBackgroundService> logger)
     {
         _steamSettingsService = steamSettingsService;
         _logger = logger;
 
         _fileSystemWatcher.Created += FileSystemWatcher_Created;
         _fileSystemWatcher.Deleted += FileSystemWatcher_Deleted;
+
+        messenger.Register<SteamShortcutsBackgroundService, SteamStartMenuSettingsChangedMessage>(this,
+            async (r, m) => await r.ExecuteAsync(CancellationToken.None));
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
