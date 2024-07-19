@@ -34,6 +34,9 @@ internal partial class SteamSettingsViewModel : LauncherSettingsViewModel, IStea
     [ObservableProperty]
     private bool _hidesOnActivityEnd;
 
+    [ObservableProperty]
+    private bool _showUnnestedInStartMenu;
+
     public SteamSettingsViewModel(SteamSettingsService settingsService,
         IMessenger messenger,
         IProtocolLauncher protocolLauncher)
@@ -46,6 +49,7 @@ internal partial class SteamSettingsViewModel : LauncherSettingsViewModel, IStea
         HidesShutdownScreen = _settingsService.GetHidesShutdownScreen() ?? false;
         HidesOnActivityStart = _settingsService.GetHidesOnActivityStart() ?? false;
         HidesOnActivityEnd = _settingsService.GetHidesOnActivityEnd() ?? false;
+        ShowUnnestedInStartMenu = _settingsService.GetShowUnnestedInStartMenu() ?? false;
     }
 
     public override IEnumerable<ComboBoxOption<LauncherStopMethod>> StopMethodOptions => s_stopMethodOptions;
@@ -62,4 +66,10 @@ internal partial class SteamSettingsViewModel : LauncherSettingsViewModel, IStea
     partial void OnHidesOnActivityStartChanged(bool value) => _settingsService.SetHidesOnActivityStart(value);
 
     partial void OnHidesOnActivityEndChanged(bool value) => _settingsService.SetHidesOnActivityEnd(value);
+
+    partial void OnShowUnnestedInStartMenuChanged(bool value)
+    {
+        _settingsService.SetShowUnnestedInStartMenu(value);
+        _messenger.Send(SteamStartMenuSettingsChangedMessage.Instance);
+    }
 }

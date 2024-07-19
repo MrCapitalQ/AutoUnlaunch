@@ -86,6 +86,12 @@
                     </toolkit:SettingsExpander.Items>
                 </toolkit:SettingsExpander>
 
+                <toolkit:SettingsCard Header="Show games as separate Start menu entries"
+                                      HeaderIcon="{ui:FontIcon Glyph=&#xE71D;}"
+                                      Description="List game shortcuts with other apps and games when viewing the Start menu all apps list instead of inside the Steam folder">
+                    <ToggleSwitch IsOn="{x:Bind _viewModel.ShowUnnestedInStartMenu, Mode=TwoWay}" />
+                </toolkit:SettingsCard>
+
                 <toolkit:SettingsExpander Header="Tips"
                                           HeaderIcon="{ui:FontIcon Glyph=&#xE82F;}"
                                           IsExpanded="True">

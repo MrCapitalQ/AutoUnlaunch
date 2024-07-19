@@ -10,6 +10,7 @@ public class SteamSettingsServiceTests
     private const string HidesShutdownScreenKey = "Steam_HidesShutdownScreen";
     private const string HidesOnActivityStartKey = "Steam_HidesOnActivityStart";
     private const string HidesOnActivityEndKey = "Steam_HidesOnActivityEnd";
+    private const string ShowUnnestedInStartMenuKey = "Steam_ShowUnnestedInStartMenu";
     private readonly IApplicationDataStore _applicationDataStore;
 
     private readonly SteamSettingsService _steamSettingsService;
@@ -213,5 +214,37 @@ public class SteamSettingsServiceTests
         _steamSettingsService.SetHidesOnActivityEnd(value);
 
         _applicationDataStore.Received(1).SetValue(HidesOnActivityEndKey, value);
+    }
+
+    [Fact]
+    public void GetShowUnnestedInStartMenu_DataStoreReturnsValue_ReturnsValue()
+    {
+        _applicationDataStore.GetValue(ShowUnnestedInStartMenuKey).Returns(true);
+
+        var actual = _steamSettingsService.GetShowUnnestedInStartMenu();
+
+        Assert.True(actual);
+        _applicationDataStore.Received(1).GetValue(ShowUnnestedInStartMenuKey);
+    }
+
+    [Fact]
+    public void GetShowUnnestedInStartMenu_DataStoreReturnsNull_ReturnsNull()
+    {
+        _applicationDataStore.GetValue(ShowUnnestedInStartMenuKey).Returns(null);
+
+        var actual = _steamSettingsService.GetShowUnnestedInStartMenu();
+
+        Assert.Null(actual);
+        _applicationDataStore.Received(1).GetValue(ShowUnnestedInStartMenuKey);
+    }
+
+    [Fact]
+    public void SetShowUnnestedInStartMenu_SavesValueInApplicationDataStore()
+    {
+        var value = true;
+
+        _steamSettingsService.SetShowUnnestedInStartMenu(value);
+
+        _applicationDataStore.Received(1).SetValue(ShowUnnestedInStartMenuKey, value);
     }
 }

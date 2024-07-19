@@ -1,13 +1,12 @@
 ﻿namespace MrCapitalQ.AutoUnlaunch.Core.AppData;
 
-public class SteamSettingsService : LauncherSettingsService
+public class SteamSettingsService(IApplicationDataStore applicationDataStore)
+    : LauncherSettingsService(applicationDataStore)
 {
     private const string HidesShutdownScreenSettingsKey = "HidesShutdownScreen";
     private const string HidesOnActivityStartSettingsKey = "HidesOnActivityStart";
     private const string HidesOnActivityEndSettingsKey = "HidesOnActivityEnd";
-
-    public SteamSettingsService(IApplicationDataStore applicationDataStore) : base(applicationDataStore)
-    { }
+    private const string ShowUnnestedInStartMenuSettingsKey = "ShowUnnestedInStartMenu";
 
     protected override string LauncherKey => "Steam";
 
@@ -19,4 +18,7 @@ public class SteamSettingsService : LauncherSettingsService
 
     public bool? GetHidesOnActivityEnd() => GetValue<bool?>(HidesOnActivityEndSettingsKey);
     public void SetHidesOnActivityEnd(bool isEnabled) => SetValue(HidesOnActivityEndSettingsKey, isEnabled);
+
+    public bool? GetShowUnnestedInStartMenu() => GetValue<bool?>(ShowUnnestedInStartMenuSettingsKey);
+    public void SetShowUnnestedInStartMenu(bool isEnabled) => SetValue(ShowUnnestedInStartMenuSettingsKey, isEnabled);
 }

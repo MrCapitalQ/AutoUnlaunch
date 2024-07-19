@@ -37,6 +37,8 @@ public class SteamSettingsViewModelTests
         _applicationDataStore.GetValue("Steam_HidesShutdownScreen").Returns(expectedHideSetting);
         _applicationDataStore.GetValue("Steam_HidesOnActivityStart").Returns(expectedHideSetting);
         _applicationDataStore.GetValue("Steam_HidesOnActivityEnd").Returns(expectedHideSetting);
+        var expectedstartMenuSetting = true;
+        _applicationDataStore.GetValue("Steam_ShowUnnestedInStartMenu").Returns(expectedstartMenuSetting);
 
         var viewModel = new SteamSettingsViewModel(new SteamSettingsService(_applicationDataStore),
             _messenger,
@@ -48,6 +50,7 @@ public class SteamSettingsViewModelTests
         Assert.Equal(expectedHideSetting, viewModel.HidesShutdownScreen);
         Assert.Equal(expectedHideSetting, viewModel.HidesOnActivityStart);
         Assert.Equal(expectedHideSetting, viewModel.HidesOnActivityEnd);
+        Assert.Equal(expectedstartMenuSetting, viewModel.ShowUnnestedInStartMenu);
     }
 
     [Fact]
@@ -63,6 +66,7 @@ public class SteamSettingsViewModelTests
         Assert.False(viewModel.HidesShutdownScreen);
         Assert.False(viewModel.HidesOnActivityStart);
         Assert.False(viewModel.HidesOnActivityEnd);
+        Assert.False(viewModel.ShowUnnestedInStartMenu);
     }
 
     [Fact]
@@ -155,6 +159,19 @@ public class SteamSettingsViewModelTests
 
         Assert.Equal(expected, _viewModel.IsEnabled);
         _applicationDataStore.Received(1).SetValue("Steam_HidesOnActivityEnd", expected);
+    }
+
+    [Fact]
+    public void SetShowUnnestedInStartMenu_SavesSettingAndSendsSteamStartMenuSettingsChangedMessage()
+    {
+        _applicationDataStore.ClearReceivedCalls();
+        var expected = true;
+
+        _viewModel.ShowUnnestedInStartMenu = expected;
+
+        Assert.Equal(expected, _viewModel.IsEnabled);
+        _applicationDataStore.Received(1).SetValue("Steam_ShowUnnestedInStartMenu", expected);
+        _messenger.Received(1).Send(SteamStartMenuSettingsChangedMessage.Instance, Arg.Any<TestMessengerToken>());
     }
 
     [Fact]
