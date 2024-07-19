@@ -3,7 +3,6 @@ using Microsoft.Win32;
 using MrCapitalQ.AutoUnlaunch.Core;
 using MrCapitalQ.AutoUnlaunch.Core.AppData;
 using MrCapitalQ.AutoUnlaunch.Core.Launchers;
-using System.Diagnostics;
 
 namespace MrCapitalQ.AutoUnlaunch.Infrastructure.Launchers;
 
