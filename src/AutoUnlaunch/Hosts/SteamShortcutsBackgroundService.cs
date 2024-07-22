@@ -222,7 +222,7 @@ internal partial class SteamShortcutsBackgroundService : BackgroundService
                         shortcutPath,
                         content);
 
-                    // Continue to retry reading the file content because the file may be fully written.
+                    // Continue to retry reading the file content because the file may not be fully written.
                     continue;
                 }
 
