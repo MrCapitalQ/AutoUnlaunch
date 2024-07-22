@@ -203,22 +203,40 @@ internal partial class SteamShortcutsBackgroundService : BackgroundService
 
     private async Task<string?> GetSteamShortcutUrlAsync(string shortcutPath)
     {
-        string content;
-        try
+        for (var currentAttempt = 0; currentAttempt < 5; currentAttempt++)
         {
-            content = await File.ReadAllTextAsync(shortcutPath);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Failed to read file content of {ShortcutPath}.", shortcutPath);
-            return null;
+            _logger.LogDebug("Attempt #{CurrentAttempt} to get the URL value of {ShortcutPath}.",
+                currentAttempt + 1,
+                shortcutPath);
+
+            try
+            {
+                using var fileStream = new FileStream(shortcutPath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
+                using var streamReader = new StreamReader(fileStream);
+                var content = streamReader.ReadToEnd();
+
+                var match = UrlShortcutTargetRegex().Match(content);
+                if (!match.Success)
+                {
+                    _logger.LogDebug("Content does not contain an expected URL value for a Steam shortcut for {ShortcutPath}.\n{ShortcutContent}",
+                        shortcutPath,
+                        content);
+
+                    // Continue to retry reading the file content because the file may not be fully written.
+                    continue;
+                }
+
+                return match.Value;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to read file content of {ShortcutPath}.", shortcutPath);
+            }
+
+            await Task.Delay(100);
         }
 
-        var match = UrlShortcutTargetRegex().Match(content);
-        if (!match.Success)
-            return null;
-
-        return match.Value;
+        return null;
     }
 
     private async void FileSystemWatcher_Created(object sender, FileSystemEventArgs e)
