@@ -240,11 +240,15 @@ internal partial class SteamShortcutsBackgroundService : BackgroundService
     }
 
     private async void FileSystemWatcher_Created(object sender, FileSystemEventArgs e)
-        => await TryHandleShortcutAsync(e.FullPath);
+    {
+        // Wait 1 second to increase the odds nothing is still writing to it.
+        await Task.Delay(1000);
+        await TryHandleShortcutAsync(e.FullPath);
+    }
 
     private async void FileSystemWatcher_Deleted(object sender, FileSystemEventArgs e)
         => await CleanupShortcutsAsync();
 
-    [GeneratedRegex(@"URL=steam://rungameid/\d+("" -silent)?")]
+    [GeneratedRegex(@"URL=steam://rungameid/\d+")]
     private static partial Regex UrlShortcutTargetRegex();
 }
