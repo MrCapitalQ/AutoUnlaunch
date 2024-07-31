@@ -34,23 +34,34 @@ internal partial class SteamShortcutsBackgroundService : BackgroundService
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        if (_steamSettingsService.GetShowUnnestedInStartMenu() is not true)
+        try
         {
-            _fileSystemWatcher.EnableRaisingEvents = false;
-            await RestoreShortcutsAsync();
-            return;
-        }
+            if (_steamSettingsService.GetShowUnnestedInStartMenu() is not true)
+            {
+                _logger.LogInformation("Steam shortcuts handling is disabled. Ensuring shortcuts are restored to default state.");
 
-        foreach (var shortcutPath in Directory.GetFiles(_steamStartMenuPath, "*.url"))
+                _fileSystemWatcher.EnableRaisingEvents = false;
+                await RestoreShortcutsAsync();
+                return;
+            }
+
+            _logger.LogInformation("Steam shortcuts handling is enabled. Ensuring shortcuts are in the correct state.");
+
+            foreach (var shortcutPath in Directory.GetFiles(_steamStartMenuPath, "*.url"))
+            {
+                await TryHandleShortcutAsync(shortcutPath);
+            }
+
+            await CleanupShortcutsAsync();
+
+            _fileSystemWatcher.Path = _steamStartMenuPath;
+            _fileSystemWatcher.Filter = "*.url";
+            _fileSystemWatcher.EnableRaisingEvents = true;
+        }
+        catch (Exception ex)
         {
-            await TryHandleShortcutAsync(shortcutPath);
+            _logger.LogError(ex, "An error occurred when executing the Steam shortcuts background service.");
         }
-
-        await CleanupShortcutsAsync();
-
-        _fileSystemWatcher.Path = _steamStartMenuPath;
-        _fileSystemWatcher.Filter = "*.url";
-        _fileSystemWatcher.EnableRaisingEvents = true;
     }
 
     private async Task TryHandleShortcutAsync(string shortcutPath)
@@ -243,11 +254,28 @@ internal partial class SteamShortcutsBackgroundService : BackgroundService
     {
         // Wait 1 second to increase the odds nothing is still writing to it.
         await Task.Delay(1000);
-        await TryHandleShortcutAsync(e.FullPath);
+
+        try
+        {
+            await TryHandleShortcutAsync(e.FullPath);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "An error occurred when trying to handle a newly created shortcut.");
+        }
     }
 
     private async void FileSystemWatcher_Deleted(object sender, FileSystemEventArgs e)
-        => await CleanupShortcutsAsync();
+    {
+        try
+        {
+            await CleanupShortcutsAsync();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "An error occurred when attempting clean up shortcuts after a shortcut has been deleted.");
+        }
+    }
 
     [GeneratedRegex(@"URL=steam://rungameid/\d+")]
     private static partial Regex UrlShortcutTargetRegex();
