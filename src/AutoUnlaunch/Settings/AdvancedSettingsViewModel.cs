@@ -40,10 +40,10 @@ internal partial class AdvancedSettingsViewModel : ObservableObject
         _messenger = messenger;
         _logger = logger;
 
-        SelectedExitBehavior = ExitBehaviorOptions.FirstOrDefault(x => x.Value == _settingsService.GetAppExitBehavior())
+        _selectedExitBehavior = ExitBehaviorOptions.FirstOrDefault(x => x.Value == _settingsService.GetAppExitBehavior())
             ?? ExitBehaviorOptions.First(x => x.Value == AppExitBehavior.RunInBackground);
 
-        SelectedLogLevel = LogLevelOptions.FirstOrDefault(x => x.Value == _settingsService.GetMinimumLogLevel())
+        _selectedLogLevel = LogLevelOptions.FirstOrDefault(x => x.Value == _settingsService.GetMinimumLogLevel())
             ?? LogLevelOptions.First(x => x.Value == LogLevel.Information);
     }
 

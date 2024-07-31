@@ -37,7 +37,7 @@ internal partial class EASettingsViewModel : LauncherSettingsViewModel, IEASetti
         _messenger = messenger;
         _protocolLauncher = protocolLauncher;
 
-        MinimizesOnActivityEnd = _settingsService.GetMinimizesOnActivityEnd() ?? false;
+        _minimizesOnActivityEnd = _settingsService.GetMinimizesOnActivityEnd() ?? false;
     }
 
     public override IEnumerable<ComboBoxOption<LauncherStopMethod>> StopMethodOptions => s_stopMethodOptions;
