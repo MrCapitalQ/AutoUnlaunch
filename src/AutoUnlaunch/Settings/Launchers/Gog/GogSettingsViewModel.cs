@@ -37,7 +37,7 @@ internal partial class GogSettingsViewModel : LauncherSettingsViewModel, IGogSet
         _messenger = messenger;
         _protocolLauncher = protocolLauncher;
 
-        HidesOnActivityEnd = _settingsService.GetHidesOnActivityEnd() ?? false;
+        _hidesOnActivityEnd = _settingsService.GetHidesOnActivityEnd() ?? false;
     }
 
     public override IEnumerable<ComboBoxOption<LauncherStopMethod>> StopMethodOptions => s_stopMethodOptions;

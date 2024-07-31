@@ -36,13 +36,13 @@ internal abstract partial class LauncherSettingsViewModel : ObservableObject
     {
         _settingsService = settingsService;
 
-        IsEnabled = _settingsService.GetIsLauncherEnabled() ?? true;
+        _isEnabled = _settingsService.GetIsLauncherEnabled() ?? true;
 
         var selectedDelay = _settingsService.GetLauncherStopDelay() ?? 5;
-        SelectedDelay = DelayOptions.Single(x => x.Value == selectedDelay);
+        _selectedDelay = DelayOptions.Single(x => x.Value == selectedDelay);
 
         var selectedStopMethod = _settingsService.GetLauncherStopMethod() ?? defaultStopMethod;
-        SelectedStopMethod = StopMethodOptions.Single(x => x.Value == selectedStopMethod);
+        _selectedStopMethod = StopMethodOptions.Single(x => x.Value == selectedStopMethod);
     }
 
     public IEnumerable<ComboBoxOption<int>> DelayOptions => s_delayOptions;
