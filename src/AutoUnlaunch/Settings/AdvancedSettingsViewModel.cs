@@ -20,10 +20,8 @@ internal partial class AdvancedSettingsViewModel : ObservableObject
     private ComboBoxOption<AppExitBehavior> _selectedExitBehavior;
 
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsLoggingLevelWarningVisible))]
     private ComboBoxOption<LogLevel> _selectedLogLevel;
-
-    [ObservableProperty]
-    private bool _isLoggingLevelWarningVisible;
 
     [ObservableProperty]
     private bool _isExporting;
@@ -61,6 +59,8 @@ internal partial class AdvancedSettingsViewModel : ObservableObject
         new(LogLevel.Debug, "Debug")
     ];
 
+    public bool IsLoggingLevelWarningVisible => SelectedLogLevel.Value == LogLevel.Debug;
+
     [RelayCommand]
     private async Task ExportLogsAsync()
     {
@@ -88,7 +88,5 @@ internal partial class AdvancedSettingsViewModel : ObservableObject
     {
         _settingsService.SetMinimumLogLevel(value.Value);
         _logLevelManager.SetMinimumLogLevel(value.Value);
-
-        IsLoggingLevelWarningVisible = value.Value == LogLevel.Debug;
     }
 }
