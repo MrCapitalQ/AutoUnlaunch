@@ -1,14 +1,13 @@
 ﻿namespace MrCapitalQ.AutoUnlaunch.Core.AppData;
 
-public class EASettingsService : LauncherSettingsService
+public class EASettingsService(IApplicationDataStore applicationDataStore)
+    : LauncherSettingsService(applicationDataStore)
 {
     private const string MinimizesOnActivityEndSettingsKey = "MinimizesOnActivityEnd";
 
-    public EASettingsService(IApplicationDataStore applicationDataStore) : base(applicationDataStore)
-    { }
-
     protected override string LauncherKey => "EA";
+    protected override LauncherStopMethod DefaultLauncherStopMethod => LauncherStopMethod.CloseMainWindow;
 
-    public bool? GetMinimizesOnActivityEnd() => GetValue<bool?>(MinimizesOnActivityEndSettingsKey);
+    public bool GetMinimizesOnActivityEnd() => GetValueOrDefault(MinimizesOnActivityEndSettingsKey, false);
     public void SetMinimizesOnActivityEnd(bool isEnabled) => SetValue(MinimizesOnActivityEndSettingsKey, isEnabled);
 }

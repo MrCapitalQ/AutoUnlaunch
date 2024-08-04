@@ -9,16 +9,17 @@ public class SteamSettingsService(IApplicationDataStore applicationDataStore)
     private const string ShowUnnestedInStartMenuSettingsKey = "ShowUnnestedInStartMenu";
 
     protected override string LauncherKey => "Steam";
+    protected override LauncherStopMethod DefaultLauncherStopMethod => LauncherStopMethod.RequestShutdown;
 
-    public bool? GetHidesShutdownScreen() => GetValue<bool?>(HidesShutdownScreenSettingsKey);
+    public bool GetHidesShutdownScreen() => GetValueOrDefault(HidesShutdownScreenSettingsKey, false);
     public void SetHidesShutdownScreen(bool isEnabled) => SetValue(HidesShutdownScreenSettingsKey, isEnabled);
 
-    public bool? GetHidesOnActivityStart() => GetValue<bool?>(HidesOnActivityStartSettingsKey);
+    public bool GetHidesOnActivityStart() => GetValueOrDefault(HidesOnActivityStartSettingsKey, false);
     public void SetHidesOnActivityStart(bool isEnabled) => SetValue(HidesOnActivityStartSettingsKey, isEnabled);
 
-    public bool? GetHidesOnActivityEnd() => GetValue<bool?>(HidesOnActivityEndSettingsKey);
+    public bool GetHidesOnActivityEnd() => GetValueOrDefault(HidesOnActivityEndSettingsKey, false);
     public void SetHidesOnActivityEnd(bool isEnabled) => SetValue(HidesOnActivityEndSettingsKey, isEnabled);
 
-    public bool? GetShowUnnestedInStartMenu() => GetValue<bool?>(ShowUnnestedInStartMenuSettingsKey);
+    public bool GetShowUnnestedInStartMenu() => GetValueOrDefault(ShowUnnestedInStartMenuSettingsKey, false);
     public void SetShowUnnestedInStartMenu(bool isEnabled) => SetValue(ShowUnnestedInStartMenuSettingsKey, isEnabled);
 }

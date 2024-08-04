@@ -17,6 +17,15 @@ public class LocalApplicationDataStore(IMemoryCache cache) : IApplicationDataSto
         return _cache.Set(key, _localSettings.Values[key]);
     }
 
+    public T GetValueOrDefault<T>(string key, T defaultValue)
+    {
+        if (GetValue(key) is T value)
+            return value;
+
+        SetValue(key, defaultValue);
+        return defaultValue;
+    }
+
     public void SetValue(string key, object? value)
     {
         _cache.Set(key, value);

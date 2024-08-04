@@ -18,7 +18,7 @@ public abstract class LauncherHandler(LauncherSettingsService launcherSettingsSe
 
     public async Task InvokeAsync(CancellationToken cancellationToken)
     {
-        var isLauncherCheckEnabled = _launcherSettingsService.GetIsLauncherEnabled() ?? false;
+        var isLauncherCheckEnabled = _launcherSettingsService.GetIsLauncherEnabled();
         if (isLauncherCheckEnabled != _isLauncherCheckEnabled)
         {
             _isLauncherCheckEnabled = isLauncherCheckEnabled;
@@ -74,7 +74,7 @@ public abstract class LauncherHandler(LauncherSettingsService launcherSettingsSe
 
         if (_scheduledStopTime is null)
         {
-            var stopDelayInSeconds = _launcherSettingsService.GetLauncherStopDelay() ?? 5;
+            var stopDelayInSeconds = _launcherSettingsService.GetLauncherStopDelay();
             _logger.LogInformation("An activity for {LauncherName} is no longer running. Stopping launcher in {StopDelay} second(s).",
                 LauncherName,
                 stopDelayInSeconds);

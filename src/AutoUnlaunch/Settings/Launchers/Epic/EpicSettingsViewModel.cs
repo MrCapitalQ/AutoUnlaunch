@@ -26,7 +26,7 @@ internal partial class EpicSettingsViewModel : LauncherSettingsViewModel, IEpicS
     public EpicSettingsViewModel(EpicSettingsService settingsService,
         IMessenger messenger,
         IProtocolLauncher protocolLauncher)
-        : base(settingsService, LauncherStopMethod.CloseMainWindow)
+        : base(settingsService)
     {
         _messenger = messenger;
         _protocolLauncher = protocolLauncher;
