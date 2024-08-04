@@ -21,20 +21,25 @@ public class GogSettingsViewModelTests
         _messenger = Substitute.For<IMessenger>();
         _protocolLauncher = Substitute.For<IProtocolLauncher>();
 
+        _applicationDataStore.GetValueOrDefault("GOG_IsEnabled", Arg.Any<bool>()).Returns(true);
+        _applicationDataStore.GetValueOrDefault("GOG_StopDelay", Arg.Any<int>()).Returns(5);
+        _applicationDataStore.GetValueOrDefault("GOG_StopMethod", Arg.Any<int>()).Returns((int)LauncherStopMethod.RequestShutdown);
+        _applicationDataStore.GetValueOrDefault("GOG_HidesOnActivityEnd", Arg.Any<bool>()).Returns(false);
+
         _viewModel = new(new GogSettingsService(_applicationDataStore), _messenger, _protocolLauncher);
     }
 
     [Fact]
-    public void Ctor_WithSavedSettings_InitializesFromSettings()
+    public void Ctor_InitializesFromSettings()
     {
         var expectedIsEnabled = false;
-        _applicationDataStore.GetValue("GOG_IsEnabled").Returns(expectedIsEnabled);
+        _applicationDataStore.GetValueOrDefault("GOG_IsEnabled", Arg.Any<bool>()).Returns(expectedIsEnabled);
         var expectedDelay = 15;
-        _applicationDataStore.GetValue("GOG_StopDelay").Returns(expectedDelay);
+        _applicationDataStore.GetValueOrDefault("GOG_StopDelay", Arg.Any<int>()).Returns(expectedDelay);
         var expectedStopMethod = LauncherStopMethod.RequestShutdown;
-        _applicationDataStore.GetValue("GOG_StopMethod").Returns((int)expectedStopMethod);
+        _applicationDataStore.GetValueOrDefault("GOG_StopMethod", Arg.Any<int>()).Returns((int)expectedStopMethod);
         var expectedHideSetting = true;
-        _applicationDataStore.GetValue("GOG_HidesOnActivityEnd").Returns(expectedHideSetting);
+        _applicationDataStore.GetValueOrDefault("GOG_HidesOnActivityEnd", Arg.Any<bool>()).Returns(expectedHideSetting);
 
         var viewModel = new GogSettingsViewModel(new GogSettingsService(_applicationDataStore),
             _messenger,
@@ -44,18 +49,6 @@ public class GogSettingsViewModelTests
         Assert.Equal(expectedDelay, viewModel.SelectedDelay.Value);
         Assert.Equal(expectedStopMethod, viewModel.SelectedStopMethod.Value);
         Assert.Equal(expectedHideSetting, viewModel.HidesOnActivityEnd);
-    }
-
-    [Fact]
-    public void Ctor_NoSavedSettings_InitializesWithDefaults()
-    {
-        var viewModel = new GogSettingsViewModel(new GogSettingsService(_applicationDataStore),
-            _messenger,
-            _protocolLauncher);
-
-        Assert.True(viewModel.IsEnabled);
-        Assert.Equal(5, viewModel.SelectedDelay.Value);
-        Assert.Equal(LauncherStopMethod.RequestShutdown, viewModel.SelectedStopMethod.Value);
     }
 
     [Fact]

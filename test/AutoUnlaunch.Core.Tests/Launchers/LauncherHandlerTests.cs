@@ -32,13 +32,13 @@ public class LauncherHandlerTests
 
         Assert.Equal("Launcher handler for TestLauncher is disabled.", _logger.LatestRecord.Message);
         Assert.Equal(LogLevel.Debug, _logger.LatestRecord.Level);
-        _applicationDataStore.Received(1).GetValue(TestLauncherSettingsService.IsLauncherEnabledTestKey);
+        _applicationDataStore.Received(1).GetValueOrDefault(TestLauncherSettingsService.IsLauncherEnabledTestKey, true);
     }
 
     [Fact]
     public async Task InvokeAsync_LauncherNotRunning_DoesNothing()
     {
-        _applicationDataStore.GetValue(TestLauncherSettingsService.IsLauncherEnabledTestKey).Returns(true);
+        _applicationDataStore.GetValueOrDefault(TestLauncherSettingsService.IsLauncherEnabledTestKey, Arg.Any<bool>()).Returns(true);
 
         await _launcherHandler.InvokeAsync(CancellationToken.None);
 
@@ -50,7 +50,7 @@ public class LauncherHandlerTests
     [Fact]
     public async Task InvokeAsync_LauncherActivityRunning_DetectsActivity()
     {
-        _applicationDataStore.GetValue(TestLauncherSettingsService.IsLauncherEnabledTestKey).Returns(true);
+        _applicationDataStore.GetValueOrDefault(TestLauncherSettingsService.IsLauncherEnabledTestKey, Arg.Any<bool>()).Returns(true);
         _launcherHandler.IsLauncherRunningAsyncReturnValue = true;
         _launcherHandler.IsLauncherActivityRunningAsyncReturnValue = true;
 
@@ -65,8 +65,8 @@ public class LauncherHandlerTests
     public async Task InvokeAsync_LauncherRunningWithNoActivity_SchedulesDelayedStopTime()
     {
         #region Arrange
-        _applicationDataStore.GetValue(TestLauncherSettingsService.IsLauncherEnabledTestKey).Returns(true);
-        _applicationDataStore.GetValue(TestLauncherSettingsService.LauncherStopDelayTestKey).Returns(10);
+        _applicationDataStore.GetValueOrDefault(TestLauncherSettingsService.IsLauncherEnabledTestKey, Arg.Any<bool>()).Returns(true);
+        _applicationDataStore.GetValueOrDefault(TestLauncherSettingsService.LauncherStopDelayTestKey, Arg.Any<int>()).Returns(10);
 
         // Sets up condition where a launcher and an launcher activity is running so the handler knows it should
         // schedule a stop time when the activity is no longer running.
@@ -85,33 +85,11 @@ public class LauncherHandlerTests
     }
 
     [Fact]
-    public async Task InvokeAsync_LauncherRunningWithNoActivityAndNoDelayTimeSet_SchedulesDefaultDelayedStopTime()
-    {
-        #region Arrange
-        _applicationDataStore.GetValue(TestLauncherSettingsService.IsLauncherEnabledTestKey).Returns(true);
-
-        // Sets up condition where a launcher and an launcher activity is running so the handler knows it should
-        // schedule a stop time when the activity is no longer running.
-        _launcherHandler.IsLauncherRunningAsyncReturnValue = true;
-        _launcherHandler.IsLauncherActivityRunningAsyncReturnValue = true;
-        await _launcherHandler.InvokeAsync(CancellationToken.None);
-
-        // Sets up the condition where a launcher activity is no longer running.
-        _launcherHandler.IsLauncherActivityRunningAsyncReturnValue = false;
-        #endregion
-
-        await _launcherHandler.InvokeAsync(CancellationToken.None);
-
-        Assert.Equal("An activity for TestLauncher is no longer running. Stopping launcher in 5 second(s).", _logger.LatestRecord.Message);
-        Assert.Equal(LogLevel.Information, _logger.LatestRecord.Level);
-    }
-
-    [Fact]
     public async Task InvokeAsync_LauncherNotRunningWithScheduledStopTime_CancelsStop()
     {
         #region Arrange
-        _applicationDataStore.GetValue(TestLauncherSettingsService.IsLauncherEnabledTestKey).Returns(true);
-        _applicationDataStore.GetValue(TestLauncherSettingsService.LauncherStopDelayTestKey).Returns(10);
+        _applicationDataStore.GetValueOrDefault(TestLauncherSettingsService.IsLauncherEnabledTestKey, Arg.Any<bool>()).Returns(true);
+        _applicationDataStore.GetValueOrDefault(TestLauncherSettingsService.LauncherStopDelayTestKey, Arg.Any<int>()).Returns(10);
 
         // Sets up condition where a launcher and an launcher activity is running so the handler knows it should
         // schedule a stop time when the activity is no longer running.
@@ -137,8 +115,8 @@ public class LauncherHandlerTests
     public async Task InvokeAsync_LauncherActivityRunningWithScheduledStopTime_CancelsStop()
     {
         #region Arrange
-        _applicationDataStore.GetValue(TestLauncherSettingsService.IsLauncherEnabledTestKey).Returns(true);
-        _applicationDataStore.GetValue(TestLauncherSettingsService.LauncherStopDelayTestKey).Returns(10);
+        _applicationDataStore.GetValueOrDefault(TestLauncherSettingsService.IsLauncherEnabledTestKey, Arg.Any<bool>()).Returns(true);
+        _applicationDataStore.GetValueOrDefault(TestLauncherSettingsService.LauncherStopDelayTestKey, Arg.Any<int>()).Returns(10);
 
         // Sets up condition where a launcher and an launcher activity is running so the handler knows it should
         // schedule a stop time when the activity is no longer running.
@@ -165,8 +143,8 @@ public class LauncherHandlerTests
     {
         #region Arrange
         var delay = 10;
-        _applicationDataStore.GetValue(TestLauncherSettingsService.IsLauncherEnabledTestKey).Returns(true);
-        _applicationDataStore.GetValue(TestLauncherSettingsService.LauncherStopDelayTestKey).Returns(delay);
+        _applicationDataStore.GetValueOrDefault(TestLauncherSettingsService.IsLauncherEnabledTestKey, Arg.Any<bool>()).Returns(true);
+        _applicationDataStore.GetValueOrDefault(TestLauncherSettingsService.LauncherStopDelayTestKey, Arg.Any<int>()).Returns(delay);
 
         // Sets up condition where a launcher and an launcher activity is running so the handler knows it should
         // schedule a stop time when the activity is no longer running.
@@ -196,8 +174,8 @@ public class LauncherHandlerTests
     {
         #region Arrange
         var delay = 10;
-        _applicationDataStore.GetValue(TestLauncherSettingsService.IsLauncherEnabledTestKey).Returns(true);
-        _applicationDataStore.GetValue(TestLauncherSettingsService.LauncherStopDelayTestKey).Returns(delay);
+        _applicationDataStore.GetValueOrDefault(TestLauncherSettingsService.IsLauncherEnabledTestKey, Arg.Any<bool>()).Returns(true);
+        _applicationDataStore.GetValueOrDefault(TestLauncherSettingsService.LauncherStopDelayTestKey, Arg.Any<int>()).Returns(delay);
 
         // Sets up condition where a launcher and an launcher activity is running so the handler knows it should
         // schedule a stop time when the activity is no longer running.
@@ -224,7 +202,7 @@ public class LauncherHandlerTests
     public async Task InvokeAsync_LauncherRunningButNoActivityStarted_DoesNotTryToStopLauncher()
     {
         #region Arrange
-        _applicationDataStore.GetValue(TestLauncherSettingsService.IsLauncherEnabledTestKey).Returns(true);
+        _applicationDataStore.GetValueOrDefault(TestLauncherSettingsService.IsLauncherEnabledTestKey, Arg.Any<bool>()).Returns(true);
 
         // Sets up condition where a launcher is running so the handler but no launcher activity has been detected yet.
         _launcherHandler.IsLauncherRunningAsyncReturnValue = true;
@@ -270,15 +248,14 @@ public class LauncherHandlerTests
         }
     }
 
-    private class TestLauncherSettingsService : LauncherSettingsService
+    private class TestLauncherSettingsService(IApplicationDataStore applicationDataStore)
+        : LauncherSettingsService(applicationDataStore)
     {
         public const string IsLauncherEnabledTestKey = "TestLauncher_IsEnabled";
         public const string LauncherStopDelayTestKey = "TestLauncher_StopDelay";
         public const string LauncherStopMethodTestKey = "TestLauncher_StopMethod";
 
-        public TestLauncherSettingsService(IApplicationDataStore applicationDataStore) : base(applicationDataStore)
-        { }
-
         protected override string LauncherKey => "TestLauncher";
+        protected override LauncherStopMethod DefaultLauncherStopMethod => LauncherStopMethod.RequestShutdown;
     }
 }

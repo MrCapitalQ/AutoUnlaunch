@@ -21,20 +21,25 @@ public class EASettingsViewModelTests
         _messenger = Substitute.For<IMessenger>();
         _protocolLauncher = Substitute.For<IProtocolLauncher>();
 
+        _applicationDataStore.GetValueOrDefault("EA_IsEnabled", Arg.Any<bool>()).Returns(true);
+        _applicationDataStore.GetValueOrDefault("EA_StopDelay", Arg.Any<int>()).Returns(5);
+        _applicationDataStore.GetValueOrDefault("EA_StopMethod", Arg.Any<int>()).Returns((int)LauncherStopMethod.CloseMainWindow);
+        _applicationDataStore.GetValueOrDefault("EA_MinimizesOnActivityEnd", Arg.Any<bool>()).Returns(false);
+
         _viewModel = new(new EASettingsService(_applicationDataStore), _messenger, _protocolLauncher);
     }
 
     [Fact]
-    public void Ctor_WithSavedSettings_InitializesFromSettings()
+    public void Ctor_InitializesFromSettings()
     {
         var expectedIsEnabled = false;
-        _applicationDataStore.GetValue("EA_IsEnabled").Returns(expectedIsEnabled);
+        _applicationDataStore.GetValueOrDefault("EA_IsEnabled", Arg.Any<bool>()).Returns(expectedIsEnabled);
         var expectedDelay = 15;
-        _applicationDataStore.GetValue("EA_StopDelay").Returns(expectedDelay);
+        _applicationDataStore.GetValueOrDefault("EA_StopDelay", Arg.Any<int>()).Returns(expectedDelay);
         var expectedStopMethod = LauncherStopMethod.CloseMainWindow;
-        _applicationDataStore.GetValue("EA_StopMethod").Returns((int)expectedStopMethod);
+        _applicationDataStore.GetValueOrDefault("EA_StopMethod", Arg.Any<int>()).Returns((int)expectedStopMethod);
         var expectedMinimizeSetting = true;
-        _applicationDataStore.GetValue("EA_MinimizesOnActivityEnd").Returns(expectedMinimizeSetting);
+        _applicationDataStore.GetValueOrDefault("EA_MinimizesOnActivityEnd", Arg.Any<bool>()).Returns(expectedMinimizeSetting);
 
         var viewModel = new EASettingsViewModel(new EASettingsService(_applicationDataStore),
             _messenger,
@@ -44,19 +49,6 @@ public class EASettingsViewModelTests
         Assert.Equal(expectedDelay, viewModel.SelectedDelay.Value);
         Assert.Equal(expectedStopMethod, viewModel.SelectedStopMethod.Value);
         Assert.Equal(expectedMinimizeSetting, viewModel.MinimizesOnActivityEnd);
-    }
-
-    [Fact]
-    public void Ctor_NoSavedSettings_InitializesWithDefaults()
-    {
-        var viewModel = new EASettingsViewModel(new EASettingsService(_applicationDataStore),
-            _messenger,
-            _protocolLauncher);
-
-        Assert.True(viewModel.IsEnabled);
-        Assert.Equal(5, viewModel.SelectedDelay.Value);
-        Assert.Equal(LauncherStopMethod.CloseMainWindow, viewModel.SelectedStopMethod.Value);
-        Assert.False(viewModel.MinimizesOnActivityEnd);
     }
 
     [Fact]
