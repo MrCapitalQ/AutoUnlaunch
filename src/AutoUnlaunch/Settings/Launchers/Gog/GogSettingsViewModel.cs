@@ -31,13 +31,13 @@ internal partial class GogSettingsViewModel : LauncherSettingsViewModel, IGogSet
     public GogSettingsViewModel(GogSettingsService settingsService,
         IMessenger messenger,
         IProtocolLauncher protocolLauncher)
-        : base(settingsService, LauncherStopMethod.RequestShutdown)
+        : base(settingsService)
     {
         _settingsService = settingsService;
         _messenger = messenger;
         _protocolLauncher = protocolLauncher;
 
-        _hidesOnActivityEnd = _settingsService.GetHidesOnActivityEnd() ?? false;
+        _hidesOnActivityEnd = _settingsService.GetHidesOnActivityEnd();
     }
 
     public override IEnumerable<ComboBoxOption<LauncherStopMethod>> StopMethodOptions => s_stopMethodOptions;

@@ -51,26 +51,15 @@ public class SettingsServiceTests
     }
 
     [Fact]
-    public void GetAppExitBehavior_DataStoreReturnsInt_ReturnsEnumValue()
+    public void GetAppExitBehavior_ReturnsValueFromApplicationDataStore()
     {
         var expected = AppExitBehavior.Stop;
-        _applicationDataStore.GetValue(AppExitBehaviorKey).Returns((int)expected);
+        _applicationDataStore.GetValueOrDefault(AppExitBehaviorKey, Arg.Any<int>()).Returns((int)expected);
 
         var actual = _settingsService.GetAppExitBehavior();
 
         Assert.Equal(expected, actual);
-        _applicationDataStore.Received(1).GetValue(AppExitBehaviorKey);
-    }
-
-    [Fact]
-    public void GetAppExitBehavior_DataStoreReturnsNull_ReturnsRunInBackground()
-    {
-        _applicationDataStore.GetValue(AppExitBehaviorKey).Returns(null);
-
-        var actual = _settingsService.GetAppExitBehavior();
-
-        Assert.Equal(AppExitBehavior.RunInBackground, actual);
-        _applicationDataStore.Received(1).GetValue(AppExitBehaviorKey);
+        _applicationDataStore.Received(1).GetValueOrDefault(AppExitBehaviorKey, (int)AppExitBehavior.RunInBackground);
     }
 
     [Fact]
@@ -87,23 +76,12 @@ public class SettingsServiceTests
     public void GetMinimumLogLevel_DataStoreReturnsInt_ReturnsEnumValue()
     {
         var expected = LogLevel.Debug;
-        _applicationDataStore.GetValue(MinimumLogLevelKey).Returns((int)expected);
+        _applicationDataStore.GetValueOrDefault(MinimumLogLevelKey, Arg.Any<int>()).Returns((int)expected);
 
         var actual = _settingsService.GetMinimumLogLevel();
 
         Assert.Equal(expected, actual);
-        _applicationDataStore.Received(1).GetValue(MinimumLogLevelKey);
-    }
-
-    [Fact]
-    public void GetMinimumLogLevel_DataStoreReturnsNull_ReturnsInformation()
-    {
-        _applicationDataStore.GetValue(MinimumLogLevelKey).Returns(null);
-
-        var actual = _settingsService.GetMinimumLogLevel();
-
-        Assert.Equal(LogLevel.Information, actual);
-        _applicationDataStore.Received(1).GetValue(MinimumLogLevelKey);
+        _applicationDataStore.Received(1).GetValueOrDefault(MinimumLogLevelKey, (int)LogLevel.Information);
     }
 
     [Fact]

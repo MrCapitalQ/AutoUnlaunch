@@ -21,24 +21,32 @@ public class SteamSettingsViewModelTests
         _messenger = Substitute.For<IMessenger>();
         _protocolLauncher = Substitute.For<IProtocolLauncher>();
 
+        _applicationDataStore.GetValueOrDefault("Steam_IsEnabled", Arg.Any<bool>()).Returns(true);
+        _applicationDataStore.GetValueOrDefault("Steam_StopDelay", Arg.Any<int>()).Returns(5);
+        _applicationDataStore.GetValueOrDefault("Steam_StopMethod", Arg.Any<int>()).Returns((int)LauncherStopMethod.RequestShutdown);
+        _applicationDataStore.GetValueOrDefault("Steam_HidesShutdownScreen", Arg.Any<bool>()).Returns(false);
+        _applicationDataStore.GetValueOrDefault("Steam_HidesOnActivityStart", Arg.Any<bool>()).Returns(false);
+        _applicationDataStore.GetValueOrDefault("Steam_HidesOnActivityEnd", Arg.Any<bool>()).Returns(false);
+        _applicationDataStore.GetValueOrDefault("Steam_ShowUnnestedInStartMenu", Arg.Any<bool>()).Returns(false);
+
         _viewModel = new(new SteamSettingsService(_applicationDataStore), _messenger, _protocolLauncher);
     }
 
     [Fact]
-    public void Ctor_WithSavedSettings_InitializesFromSettings()
+    public void Ctor_InitializesFromSettings()
     {
         var expectedIsEnabled = false;
-        _applicationDataStore.GetValue("Steam_IsEnabled").Returns(expectedIsEnabled);
+        _applicationDataStore.GetValueOrDefault("Steam_IsEnabled", Arg.Any<bool>()).Returns(expectedIsEnabled);
         var expectedDelay = 15;
-        _applicationDataStore.GetValue("Steam_StopDelay").Returns(expectedDelay);
+        _applicationDataStore.GetValueOrDefault("Steam_StopDelay", Arg.Any<int>()).Returns(expectedDelay);
         var expectedStopMethod = LauncherStopMethod.RequestShutdown;
-        _applicationDataStore.GetValue("Steam_StopMethod").Returns((int)expectedStopMethod);
+        _applicationDataStore.GetValueOrDefault("Steam_StopMethod", Arg.Any<int>()).Returns((int)expectedStopMethod);
         var expectedHideSetting = true;
-        _applicationDataStore.GetValue("Steam_HidesShutdownScreen").Returns(expectedHideSetting);
-        _applicationDataStore.GetValue("Steam_HidesOnActivityStart").Returns(expectedHideSetting);
-        _applicationDataStore.GetValue("Steam_HidesOnActivityEnd").Returns(expectedHideSetting);
+        _applicationDataStore.GetValueOrDefault("Steam_HidesShutdownScreen", Arg.Any<bool>()).Returns(expectedHideSetting);
+        _applicationDataStore.GetValueOrDefault("Steam_HidesOnActivityStart", Arg.Any<bool>()).Returns(expectedHideSetting);
+        _applicationDataStore.GetValueOrDefault("Steam_HidesOnActivityEnd", Arg.Any<bool>()).Returns(expectedHideSetting);
         var expectedstartMenuSetting = true;
-        _applicationDataStore.GetValue("Steam_ShowUnnestedInStartMenu").Returns(expectedstartMenuSetting);
+        _applicationDataStore.GetValueOrDefault("Steam_ShowUnnestedInStartMenu", Arg.Any<bool>()).Returns(expectedstartMenuSetting);
 
         var viewModel = new SteamSettingsViewModel(new SteamSettingsService(_applicationDataStore),
             _messenger,
@@ -51,22 +59,6 @@ public class SteamSettingsViewModelTests
         Assert.Equal(expectedHideSetting, viewModel.HidesOnActivityStart);
         Assert.Equal(expectedHideSetting, viewModel.HidesOnActivityEnd);
         Assert.Equal(expectedstartMenuSetting, viewModel.ShowUnnestedInStartMenu);
-    }
-
-    [Fact]
-    public void Ctor_NoSavedSettings_InitializesWithDefaults()
-    {
-        var viewModel = new SteamSettingsViewModel(new SteamSettingsService(_applicationDataStore),
-            _messenger,
-            _protocolLauncher);
-
-        Assert.True(viewModel.IsEnabled);
-        Assert.Equal(5, viewModel.SelectedDelay.Value);
-        Assert.Equal(LauncherStopMethod.RequestShutdown, viewModel.SelectedStopMethod.Value);
-        Assert.False(viewModel.HidesShutdownScreen);
-        Assert.False(viewModel.HidesOnActivityStart);
-        Assert.False(viewModel.HidesOnActivityEnd);
-        Assert.False(viewModel.ShowUnnestedInStartMenu);
     }
 
     [Fact]

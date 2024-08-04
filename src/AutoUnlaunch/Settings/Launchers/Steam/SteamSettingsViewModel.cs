@@ -40,16 +40,16 @@ internal partial class SteamSettingsViewModel : LauncherSettingsViewModel, IStea
     public SteamSettingsViewModel(SteamSettingsService settingsService,
         IMessenger messenger,
         IProtocolLauncher protocolLauncher)
-        : base(settingsService, LauncherStopMethod.RequestShutdown)
+        : base(settingsService)
     {
         _settingsService = settingsService;
         _messenger = messenger;
         _protocolLauncher = protocolLauncher;
 
-        _hidesShutdownScreen = _settingsService.GetHidesShutdownScreen() ?? false;
-        _hidesOnActivityStart = _settingsService.GetHidesOnActivityStart() ?? false;
-        _hidesOnActivityEnd = _settingsService.GetHidesOnActivityEnd() ?? false;
-        _showUnnestedInStartMenu = _settingsService.GetShowUnnestedInStartMenu() ?? false;
+        _hidesShutdownScreen = _settingsService.GetHidesShutdownScreen();
+        _hidesOnActivityStart = _settingsService.GetHidesOnActivityStart();
+        _hidesOnActivityEnd = _settingsService.GetHidesOnActivityEnd();
+        _showUnnestedInStartMenu = _settingsService.GetShowUnnestedInStartMenu();
     }
 
     public override IEnumerable<ComboBoxOption<LauncherStopMethod>> StopMethodOptions => s_stopMethodOptions;

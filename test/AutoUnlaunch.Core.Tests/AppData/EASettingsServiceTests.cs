@@ -20,25 +20,14 @@ public class EASettingsServiceTests
     }
 
     [Fact]
-    public void GetIsLauncherEnabled_DataStoreReturnsValue_ReturnsValue()
+    public void GetIsLauncherEnabled_ReturnsValueFromApplicationDataStore()
     {
-        _applicationDataStore.GetValue(IsLauncherEnabledKey).Returns(true);
+        _applicationDataStore.GetValueOrDefault(IsLauncherEnabledKey, Arg.Any<bool>()).Returns(true);
 
         var actual = _eaSettingsService.GetIsLauncherEnabled();
 
         Assert.True(actual);
-        _applicationDataStore.Received(1).GetValue(IsLauncherEnabledKey);
-    }
-
-    [Fact]
-    public void GetIsLauncherEnabled_DataStoreReturnsNull_ReturnsNull()
-    {
-        _applicationDataStore.GetValue(IsLauncherEnabledKey).Returns(null);
-
-        var actual = _eaSettingsService.GetIsLauncherEnabled();
-
-        Assert.Null(actual);
-        _applicationDataStore.Received(1).GetValue(IsLauncherEnabledKey);
+        _applicationDataStore.Received(1).GetValueOrDefault(IsLauncherEnabledKey, true);
     }
 
     [Fact]
@@ -52,26 +41,15 @@ public class EASettingsServiceTests
     }
 
     [Fact]
-    public void GetLauncherStopDelay_DataStoreReturnsValue_ReturnsValue()
+    public void GetLauncherStopDelay_ReturnsValueFromApplicationDataStore()
     {
         var expected = 5;
-        _applicationDataStore.GetValue(LauncherStopDelayTestKey).Returns(expected);
+        _applicationDataStore.GetValueOrDefault(LauncherStopDelayTestKey, Arg.Any<int>()).Returns(expected);
 
         var actual = _eaSettingsService.GetLauncherStopDelay();
 
         Assert.Equal(expected, actual);
-        _applicationDataStore.Received(1).GetValue(LauncherStopDelayTestKey);
-    }
-
-    [Fact]
-    public void GetLauncherStopDelay_DataStoreReturnsNull_ReturnsNull()
-    {
-        _applicationDataStore.GetValue(LauncherStopDelayTestKey).Returns(null);
-
-        var actual = _eaSettingsService.GetLauncherStopDelay();
-
-        Assert.Null(actual);
-        _applicationDataStore.Received(1).GetValue(LauncherStopDelayTestKey);
+        _applicationDataStore.Received(1).GetValueOrDefault(LauncherStopDelayTestKey, 5);
     }
 
     [Fact]
@@ -85,26 +63,15 @@ public class EASettingsServiceTests
     }
 
     [Fact]
-    public void GetLauncherStopMethod_DataStoreReturnsIntValue_ReturnsLauncherStopMethodValue()
+    public void GetLauncherStopMethod_ReturnsValueFromApplicationDataStore()
     {
         var expected = LauncherStopMethod.RequestShutdown;
-        _applicationDataStore.GetValue(LauncherStopMethodTestKey).Returns((int)expected);
+        _applicationDataStore.GetValueOrDefault(LauncherStopMethodTestKey, Arg.Any<int>()).Returns((int)expected);
 
         var actual = _eaSettingsService.GetLauncherStopMethod();
 
         Assert.Equal(expected, actual);
-        _applicationDataStore.Received(1).GetValue(LauncherStopMethodTestKey);
-    }
-
-    [Fact]
-    public void GetLauncherStopMethod_DataStoreReturnsNull_ReturnsNull()
-    {
-        _applicationDataStore.GetValue(LauncherStopMethodTestKey).Returns(null);
-
-        var actual = _eaSettingsService.GetLauncherStopMethod();
-
-        Assert.Null(actual);
-        _applicationDataStore.Received(1).GetValue(LauncherStopMethodTestKey);
+        _applicationDataStore.Received(1).GetValueOrDefault(LauncherStopMethodTestKey, (int)LauncherStopMethod.CloseMainWindow);
     }
 
     [Fact]
@@ -118,25 +85,14 @@ public class EASettingsServiceTests
     }
 
     [Fact]
-    public void GetMinimizesOnActivityStart_DataStoreReturnsValue_ReturnsValue()
+    public void GetMinimizesOnActivityStart_ReturnsValueFromApplicationDataStore()
     {
-        _applicationDataStore.GetValue(MinimizesOnActivityEndKey).Returns(true);
+        _applicationDataStore.GetValueOrDefault(MinimizesOnActivityEndKey, Arg.Any<bool>()).Returns(true);
 
         var actual = _eaSettingsService.GetMinimizesOnActivityEnd();
 
         Assert.True(actual);
-        _applicationDataStore.Received(1).GetValue(MinimizesOnActivityEndKey);
-    }
-
-    [Fact]
-    public void GetMinimizesOnActivityStart_DataStoreReturnsNull_ReturnsNull()
-    {
-        _applicationDataStore.GetValue(MinimizesOnActivityEndKey).Returns(null);
-
-        var actual = _eaSettingsService.GetMinimizesOnActivityEnd();
-
-        Assert.Null(actual);
-        _applicationDataStore.Received(1).GetValue(MinimizesOnActivityEndKey);
+        _applicationDataStore.Received(1).GetValueOrDefault(MinimizesOnActivityEndKey, false);
     }
 
     [Fact]

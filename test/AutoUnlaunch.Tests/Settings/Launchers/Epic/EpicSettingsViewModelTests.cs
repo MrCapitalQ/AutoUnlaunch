@@ -22,18 +22,22 @@ public class EpicSettingsViewModelTests
         _messenger = Substitute.For<IMessenger>();
         _protocolLauncher = Substitute.For<IProtocolLauncher>();
 
+        _applicationDataStore.GetValueOrDefault("Epic_IsEnabled", Arg.Any<bool>()).Returns(true);
+        _applicationDataStore.GetValueOrDefault("Epic_StopDelay", Arg.Any<int>()).Returns(5);
+        _applicationDataStore.GetValueOrDefault("Epic_StopMethod", Arg.Any<int>()).Returns((int)LauncherStopMethod.CloseMainWindow);
+
         _viewModel = new(new EpicSettingsService(_applicationDataStore), _messenger, _protocolLauncher);
     }
 
     [Fact]
-    public void Ctor_WithSavedSettings_InitializesFromSettings()
+    public void Ctor_InitializesFromSettings()
     {
         var expectedIsEnabled = false;
-        _applicationDataStore.GetValue("Epic_IsEnabled").Returns(expectedIsEnabled);
+        _applicationDataStore.GetValueOrDefault("Epic_IsEnabled", Arg.Any<bool>()).Returns(expectedIsEnabled);
         var expectedDelay = 15;
-        _applicationDataStore.GetValue("Epic_StopDelay").Returns(expectedDelay);
+        _applicationDataStore.GetValueOrDefault("Epic_StopDelay", Arg.Any<int>()).Returns(expectedDelay);
         var expectedStopMethod = LauncherStopMethod.CloseMainWindow;
-        _applicationDataStore.GetValue("Epic_StopMethod").Returns((int)expectedStopMethod);
+        _applicationDataStore.GetValueOrDefault("Epic_StopMethod", Arg.Any<int>()).Returns((int)expectedStopMethod);
 
         var viewModel = new EpicSettingsViewModel(new EpicSettingsService(_applicationDataStore),
             _messenger,
@@ -42,18 +46,6 @@ public class EpicSettingsViewModelTests
         Assert.Equal(expectedIsEnabled, viewModel.IsEnabled);
         Assert.Equal(expectedDelay, viewModel.SelectedDelay.Value);
         Assert.Equal(expectedStopMethod, viewModel.SelectedStopMethod.Value);
-    }
-
-    [Fact]
-    public void Ctor_NoSavedSettings_InitializesWithDefaults()
-    {
-        var viewModel = new EpicSettingsViewModel(new EpicSettingsService(_applicationDataStore),
-            _messenger,
-            _protocolLauncher);
-
-        Assert.True(viewModel.IsEnabled);
-        Assert.Equal(5, viewModel.SelectedDelay.Value);
-        Assert.Equal(LauncherStopMethod.CloseMainWindow, viewModel.SelectedStopMethod.Value);
     }
 
     [Fact]

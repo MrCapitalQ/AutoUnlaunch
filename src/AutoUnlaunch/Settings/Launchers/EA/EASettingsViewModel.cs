@@ -31,13 +31,13 @@ internal partial class EASettingsViewModel : LauncherSettingsViewModel, IEASetti
     public EASettingsViewModel(EASettingsService settingsService,
         IMessenger messenger,
         IProtocolLauncher protocolLauncher)
-        : base(settingsService, LauncherStopMethod.CloseMainWindow)
+        : base(settingsService)
     {
         _settingsService = settingsService;
         _messenger = messenger;
         _protocolLauncher = protocolLauncher;
 
-        _minimizesOnActivityEnd = _settingsService.GetMinimizesOnActivityEnd() ?? false;
+        _minimizesOnActivityEnd = _settingsService.GetMinimizesOnActivityEnd();
     }
 
     public override IEnumerable<ComboBoxOption<LauncherStopMethod>> StopMethodOptions => s_stopMethodOptions;

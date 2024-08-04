@@ -31,17 +31,16 @@ internal abstract partial class LauncherSettingsViewModel : ObservableObject
     [ObservableProperty]
     private ComboBoxOption<LauncherStopMethod> _selectedStopMethod;
 
-    protected LauncherSettingsViewModel(LauncherSettingsService settingsService,
-        LauncherStopMethod defaultStopMethod = LauncherStopMethod.KillProcess)
+    protected LauncherSettingsViewModel(LauncherSettingsService settingsService)
     {
         _settingsService = settingsService;
 
-        _isEnabled = _settingsService.GetIsLauncherEnabled() ?? true;
+        _isEnabled = _settingsService.GetIsLauncherEnabled();
 
-        var selectedDelay = _settingsService.GetLauncherStopDelay() ?? 5;
+        var selectedDelay = _settingsService.GetLauncherStopDelay();
         _selectedDelay = DelayOptions.Single(x => x.Value == selectedDelay);
 
-        var selectedStopMethod = _settingsService.GetLauncherStopMethod() ?? defaultStopMethod;
+        var selectedStopMethod = _settingsService.GetLauncherStopMethod();
         _selectedStopMethod = StopMethodOptions.Single(x => x.Value == selectedStopMethod);
     }
 

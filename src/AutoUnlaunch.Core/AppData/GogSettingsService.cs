@@ -6,7 +6,8 @@ public class GogSettingsService(IApplicationDataStore applicationDataStore)
     private const string HidesOnActivityEndSettingsKey = "HidesOnActivityEnd";
 
     protected override string LauncherKey => "GOG";
+    protected override LauncherStopMethod DefaultLauncherStopMethod => LauncherStopMethod.RequestShutdown;
 
-    public bool? GetHidesOnActivityEnd() => GetValue<bool?>(HidesOnActivityEndSettingsKey);
+    public bool GetHidesOnActivityEnd() => GetValueOrDefault(HidesOnActivityEndSettingsKey, false);
     public void SetHidesOnActivityEnd(bool isEnabled) => SetValue(HidesOnActivityEndSettingsKey, isEnabled);
 }
