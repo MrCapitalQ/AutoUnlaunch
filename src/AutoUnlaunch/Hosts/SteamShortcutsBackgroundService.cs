@@ -171,7 +171,14 @@ internal partial class SteamShortcutsBackgroundService : BackgroundService
 
             try
             {
-                File.SetAttributes(shortcutPath, File.GetAttributes(shortcutPath) & ~FileAttributes.Hidden);
+                var attributes = File.GetAttributes(shortcutPath);
+                if (!attributes.HasFlag(FileAttributes.Hidden))
+                {
+                    _logger.LogDebug("Shortcut does not have the hidden attribute. Skipping {ShortcutPath}.", shortcutPath);
+                    continue;
+                }
+
+                File.SetAttributes(shortcutPath, attributes & ~FileAttributes.Hidden);
                 _logger.LogInformation("Removed hidden attribute from original Steam shortcut {ShortcutPath}.",
                     shortcutPath);
             }
