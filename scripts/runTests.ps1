@@ -18,7 +18,7 @@ try {
     reportgenerator -reports:"./test/**/coverage.cobertura.xml" -targetdir:"./TestResults/CoverageReport" -reporttypes:Html
     if (!$?) { Exit $LASTEXITCODE }
 
-    Start-Process ./TestResults/CoverageReport/index.html
+    Start-Process explorer -ArgumentList """$("./TestResults/CoverageReport/index.html" | Resolve-Path)"""
 }
 finally {
     # Return to original directory
