@@ -3,9 +3,9 @@ using MrCapitalQ.AutoUnlaunch.Core.AppData;
 
 namespace MrCapitalQ.AutoUnlaunch.Core.Launchers;
 
-public abstract class LauncherHandler(LauncherSettingsService launcherSettingsService,
+public abstract class LauncherPollingHandler(LauncherSettingsService launcherSettingsService,
     TimeProvider timeProvider,
-    ILogger logger) : ILauncherHandler
+    ILogger logger) : ILauncherPollingHandler
 {
     private readonly LauncherSettingsService _launcherSettingsService = launcherSettingsService;
     protected readonly TimeProvider _timeProvider = timeProvider;

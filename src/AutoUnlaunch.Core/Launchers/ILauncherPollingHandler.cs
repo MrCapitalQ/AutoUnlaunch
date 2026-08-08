@@ -1,6 +1,6 @@
 ﻿namespace MrCapitalQ.AutoUnlaunch.Core.Launchers;
 
-public interface ILauncherHandler
+public interface ILauncherPollingHandler
 {
     Task InvokeAsync(CancellationToken cancellationToken);
 }

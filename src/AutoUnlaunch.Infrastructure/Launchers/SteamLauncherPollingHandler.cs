@@ -6,12 +6,12 @@ using MrCapitalQ.AutoUnlaunch.Core.Launchers;
 
 namespace MrCapitalQ.AutoUnlaunch.Infrastructure.Launchers;
 
-internal class SteamLauncherHandler(TimeProvider timeProvider,
+internal class SteamLauncherPollingHandler(TimeProvider timeProvider,
     SteamSettingsService steamSettingsService,
     IProtocolLauncher protocolLauncher,
     ProcessWindowService processWindowService,
-    ILogger<SteamLauncherHandler> logger)
-    : LauncherHandler(steamSettingsService, timeProvider, logger)
+    ILogger<SteamLauncherPollingHandler> logger)
+    : LauncherPollingHandler(steamSettingsService, timeProvider, logger)
 {
     private const string LauncherProcessName = "steam";
     private const string WebHelperProcessName = "steamwebhelper";

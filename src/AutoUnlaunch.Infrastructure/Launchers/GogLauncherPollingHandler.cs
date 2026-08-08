@@ -6,12 +6,12 @@ using System.Diagnostics;
 
 namespace MrCapitalQ.AutoUnlaunch.Infrastructure.Launchers;
 
-internal class GogLauncherHandler(TimeProvider timeProvider,
+internal class GogLauncherPollingHandler(TimeProvider timeProvider,
     GogSettingsService gogSettingsService,
     LauncherChildProcessChecker childProcessChecker,
     ProcessWindowService processWindowService,
-    ILogger<GogLauncherHandler> logger)
-    : LauncherHandler(gogSettingsService, timeProvider, logger)
+    ILogger<GogLauncherPollingHandler> logger)
+    : LauncherPollingHandler(gogSettingsService, timeProvider, logger)
 {
     private const string LauncherProcessName = "GalaxyClient";
     private const string RegistryRootPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\WOW6432Node\GOG.com\GalaxyClient";

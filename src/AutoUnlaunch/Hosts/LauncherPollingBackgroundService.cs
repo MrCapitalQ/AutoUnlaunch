@@ -6,14 +6,14 @@ using System.Diagnostics.CodeAnalysis;
 namespace MrCapitalQ.AutoUnlaunch.Hosts;
 
 [ExcludeFromCodeCoverage]
-internal class LauncherBackgroundService : BackgroundService
+internal class LauncherPollingBackgroundService : BackgroundService
 {
     private const int LauncherCheckInterval = 1;
 
-    private readonly ISet<ILauncherHandler> _handlers;
-    private readonly ILogger<LauncherBackgroundService> _logger;
+    private readonly ISet<ILauncherPollingHandler> _handlers;
+    private readonly ILogger<LauncherPollingBackgroundService> _logger;
 
-    public LauncherBackgroundService(IEnumerable<ILauncherHandler> handlers, ILogger<LauncherBackgroundService> logger)
+    public LauncherPollingBackgroundService(IEnumerable<ILauncherPollingHandler> handlers, ILogger<LauncherPollingBackgroundService> logger)
     {
         _handlers = handlers.ToHashSet();
         _logger = logger;
