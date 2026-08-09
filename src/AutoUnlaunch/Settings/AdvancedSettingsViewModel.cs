@@ -17,14 +17,14 @@ internal partial class AdvancedSettingsViewModel : ObservableObject
     private readonly ILogger<AdvancedSettingsViewModel> _logger;
 
     [ObservableProperty]
-    private ComboBoxOption<AppExitBehavior> _selectedExitBehavior;
+    public partial ComboBoxOption<AppExitBehavior> SelectedExitBehavior { get; set; }
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(IsLoggingLevelWarningVisible))]
-    private ComboBoxOption<LogLevel> _selectedLogLevel;
+    public partial ComboBoxOption<LogLevel> SelectedLogLevel { get; set; }
 
     [ObservableProperty]
-    private bool _isExporting;
+    public partial bool IsExporting { get; set; }
 
     public AdvancedSettingsViewModel(ISettingsService settingsService,
         ILogLevelManager logLevelManager,
@@ -38,10 +38,10 @@ internal partial class AdvancedSettingsViewModel : ObservableObject
         _messenger = messenger;
         _logger = logger;
 
-        _selectedExitBehavior = ExitBehaviorOptions.FirstOrDefault(x => x.Value == _settingsService.GetAppExitBehavior())
+        SelectedExitBehavior = ExitBehaviorOptions.FirstOrDefault(x => x.Value == _settingsService.GetAppExitBehavior())
             ?? ExitBehaviorOptions.First(x => x.Value == AppExitBehavior.RunInBackground);
 
-        _selectedLogLevel = LogLevelOptions.FirstOrDefault(x => x.Value == _settingsService.GetMinimumLogLevel())
+        SelectedLogLevel = LogLevelOptions.FirstOrDefault(x => x.Value == _settingsService.GetMinimumLogLevel())
             ?? LogLevelOptions.First(x => x.Value == LogLevel.Information);
     }
 

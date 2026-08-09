@@ -46,6 +46,7 @@ public sealed partial class MainWindow : WindowEx
         Title = Package.Current.DisplayName;
         ExtendsContentIntoTitleBar = true;
         PersistenceId = nameof(MainWindow);
+        AppWindow.SetTaskbarIcon("Assets/AppIcon.ico");
         AppWindow.Closing += AppWindow_Closing;
 
         RootFrame.Navigated += RootFrame_Navigated;

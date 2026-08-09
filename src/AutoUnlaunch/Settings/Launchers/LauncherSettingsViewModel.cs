@@ -23,25 +23,25 @@ internal abstract partial class LauncherSettingsViewModel : ObservableObject
     private readonly LauncherSettingsService _settingsService;
 
     [ObservableProperty]
-    private bool _isEnabled;
+    public partial bool IsEnabled { get; set; }
 
     [ObservableProperty]
-    private ComboBoxOption<int> _selectedDelay;
+    public partial ComboBoxOption<int> SelectedDelay { get; set; }
 
     [ObservableProperty]
-    private ComboBoxOption<LauncherStopMethod> _selectedStopMethod;
+    public partial ComboBoxOption<LauncherStopMethod> SelectedStopMethod { get; set; }
 
     protected LauncherSettingsViewModel(LauncherSettingsService settingsService)
     {
         _settingsService = settingsService;
 
-        _isEnabled = _settingsService.GetIsLauncherEnabled();
+        IsEnabled = _settingsService.GetIsLauncherEnabled();
 
         var selectedDelay = _settingsService.GetLauncherStopDelay();
-        _selectedDelay = DelayOptions.Single(x => x.Value == selectedDelay);
+        SelectedDelay = DelayOptions.Single(x => x.Value == selectedDelay);
 
         var selectedStopMethod = _settingsService.GetLauncherStopMethod();
-        _selectedStopMethod = StopMethodOptions.Single(x => x.Value == selectedStopMethod);
+        SelectedStopMethod = StopMethodOptions.Single(x => x.Value == selectedStopMethod);
     }
 
     public IEnumerable<ComboBoxOption<int>> DelayOptions => s_delayOptions;

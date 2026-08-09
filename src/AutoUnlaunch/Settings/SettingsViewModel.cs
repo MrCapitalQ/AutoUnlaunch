@@ -24,10 +24,10 @@ internal partial class SettingsViewModel : ObservableObject
     private bool _isStartupOn;
 
     [ObservableProperty]
-    private bool _isStartupToggleEnabled;
+    public partial bool IsStartupToggleEnabled { get; set; }
 
     [ObservableProperty]
-    private string _startupSettingsText = string.Empty;
+    public partial string StartupSettingsText { get; set; } = string.Empty;
 
     public SettingsViewModel(IStartupTaskService startupTaskService,
         ISettingsService settingsService,
@@ -62,12 +62,13 @@ internal partial class SettingsViewModel : ObservableObject
     public string AppDisplayName { get; }
     public string Version { get; }
 
-    public IEnumerable<ExternalLinkViewModel> GeneralLinks =
+    // TODO: Figure out better solution than to use concrete type
+    public List<ExternalLinkViewModel> GeneralLinks =
         [
             new("Project GitHub page", "https://github.com/MrCapitalQ/AutoUnlaunch")
         ];
 
-    public IEnumerable<ExternalLinkViewModel> OpenSourceLibraryLinks =
+    public List<ExternalLinkViewModel> OpenSourceLibraryLinks =
         [
             new(".NET Community Toolkit", "https://github.com/CommunityToolkit/dotnet"),
             new("H.NotifyIcon", "https://github.com/HavenDV/H.NotifyIcon"),

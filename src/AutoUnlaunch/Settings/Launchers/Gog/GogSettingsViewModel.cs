@@ -26,7 +26,7 @@ internal partial class GogSettingsViewModel : LauncherSettingsViewModel, IGogSet
     private readonly IProtocolLauncher _protocolLauncher;
 
     [ObservableProperty]
-    private bool _hidesOnActivityEnd;
+    public partial bool HidesOnActivityEnd { get; set; }
 
     public GogSettingsViewModel(GogSettingsService settingsService,
         IMessenger messenger,
@@ -37,7 +37,7 @@ internal partial class GogSettingsViewModel : LauncherSettingsViewModel, IGogSet
         _messenger = messenger;
         _protocolLauncher = protocolLauncher;
 
-        _hidesOnActivityEnd = _settingsService.GetHidesOnActivityEnd();
+        HidesOnActivityEnd = _settingsService.GetHidesOnActivityEnd();
     }
 
     public override IEnumerable<ComboBoxOption<LauncherStopMethod>> StopMethodOptions => s_stopMethodOptions;
