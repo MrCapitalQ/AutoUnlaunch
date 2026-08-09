@@ -5,13 +5,13 @@ using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Xaml.Media.Animation;
-using Microsoft.UI.Xaml.Navigation;
 using MrCapitalQ.AutoUnlaunch.Core.AppData;
 using MrCapitalQ.AutoUnlaunch.Settings;
 using MrCapitalQ.AutoUnlaunch.Shared;
 using System.Diagnostics.CodeAnalysis;
 using Windows.ApplicationModel;
 using WinUIEx;
+using TitleBar = Microsoft.UI.Xaml.Controls.TitleBar;
 
 namespace MrCapitalQ.AutoUnlaunch;
 
@@ -49,7 +49,6 @@ public sealed partial class MainWindow : WindowEx
         AppWindow.SetTaskbarIcon("Assets/AppIcon.ico");
         AppWindow.Closing += AppWindow_Closing;
 
-        RootFrame.Navigated += RootFrame_Navigated;
         RootFrame.Navigate(typeof(SettingsPage));
 
         messenger.Register<MainWindow, NavigateMessage>(this, (r, m) =>
@@ -130,8 +129,6 @@ public sealed partial class MainWindow : WindowEx
         }
     }
 
-    public string Icon => "Assets/AppIcon.ico";
-
     private void GoBack()
     {
         if (RootFrame.CanGoBack)
@@ -144,7 +141,7 @@ public sealed partial class MainWindow : WindowEx
             RootFrame.GoForward();
     }
 
-    private void TitleBar_BackRequested(object sender, EventArgs e) => GoBack();
+    private void TitleBar_BackRequested(TitleBar sender, object args) => GoBack();
 
     private void Grid_PointerPressed(object sender, PointerRoutedEventArgs e)
     {
@@ -172,7 +169,4 @@ public sealed partial class MainWindow : WindowEx
         GoForward();
         args.Handled = true;
     }
-
-    private void RootFrame_Navigated(object sender, NavigationEventArgs e)
-        => TitleBar.IsBackButtonVisible = RootFrame.CanGoBack;
 }

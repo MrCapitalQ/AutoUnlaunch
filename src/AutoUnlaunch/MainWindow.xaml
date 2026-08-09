@@ -36,11 +36,15 @@
                                  Invoked="ForwardKeyboardAccelerator_Invoked" />
         </Grid.KeyboardAccelerators>
 
-        <controls:TitleBar x:Name="TitleBar"
-                           Icon="{x:Bind Icon}"
-                           Title="{x:Bind Title}"
-                           Window="{x:Bind}"
-                           BackRequested="TitleBar_BackRequested" />
+        <TitleBar x:Name="TitleBar"
+                  Title="{x:Bind Title}"
+                  BackRequested="TitleBar_BackRequested"
+                  IsBackButtonVisible="{x:Bind RootFrame.CanGoBack, Mode=OneWay}">
+            <TitleBar.IconSource>
+                <ImageIconSource ImageSource="Assets/AppIcon.ico" />
+            </TitleBar.IconSource>
+        </TitleBar>
+
         <Frame x:Name="RootFrame"
                Margin="0,12,0,0"
                Grid.Row="1" />
