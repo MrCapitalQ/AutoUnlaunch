@@ -62,12 +62,12 @@ internal partial class SettingsViewModel : ObservableObject
     public string AppDisplayName { get; }
     public string Version { get; }
 
-    public IEnumerable<ExternalLinkViewModel> GeneralLinks = new List<ExternalLinkViewModel>
+    public List<ExternalLinkViewModel> GeneralLinks = new()
     {
         new("Project GitHub page", "https://github.com/MrCapitalQ/AutoUnlaunch")
     };
 
-    public IEnumerable<ExternalLinkViewModel> OpenSourceLibraryLinks = new List<ExternalLinkViewModel>
+    public List<ExternalLinkViewModel> OpenSourceLibraryLinks = new()
     {
         new(".NET Community Toolkit", "https://github.com/CommunityToolkit/dotnet"),
         new("H.NotifyIcon", "https://github.com/HavenDV/H.NotifyIcon"),
