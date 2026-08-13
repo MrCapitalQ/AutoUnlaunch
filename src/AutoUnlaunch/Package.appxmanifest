@@ -17,7 +17,7 @@
   <mp:PhoneIdentity PhoneProductId="06fc051d-4b62-4b48-9a0f-5a53b9cc0d18" PhonePublisherId="00000000-0000-0000-0000-000000000000"/>
 
   <Properties>
-    <DisplayName>AutoUnlaunch</DisplayName>
+    <DisplayName>AutoUnlaunch (Local Dev)</DisplayName>
     <PublisherDisplayName>MrCapitalQ</PublisherDisplayName>
     <Logo>Assets\StoreLogo.png</Logo>
   </Properties>

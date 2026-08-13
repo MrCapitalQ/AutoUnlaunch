@@ -22,15 +22,6 @@ internal abstract partial class LauncherSettingsViewModel : ObservableObject
     };
     private readonly LauncherSettingsService _settingsService;
 
-    [ObservableProperty]
-    public partial bool IsEnabled { get; set; }
-
-    [ObservableProperty]
-    public partial ComboBoxOption<int> SelectedDelay { get; set; }
-
-    [ObservableProperty]
-    public partial ComboBoxOption<LauncherStopMethod> SelectedStopMethod { get; set; }
-
     protected LauncherSettingsViewModel(LauncherSettingsService settingsService)
     {
         _settingsService = settingsService;
@@ -45,6 +36,16 @@ internal abstract partial class LauncherSettingsViewModel : ObservableObject
     }
 
     public IEnumerable<ComboBoxOption<int>> DelayOptions => s_delayOptions;
+
+    [ObservableProperty]
+    public partial bool IsEnabled { get; set; }
+
+    [ObservableProperty]
+    public partial ComboBoxOption<int> SelectedDelay { get; set; }
+
+    [ObservableProperty]
+    public partial ComboBoxOption<LauncherStopMethod> SelectedStopMethod { get; set; }
+
     public abstract IEnumerable<ComboBoxOption<LauncherStopMethod>> StopMethodOptions { get; }
 
     partial void OnIsEnabledChanged(bool value) => _settingsService.SetIsLauncherEnabled(value);

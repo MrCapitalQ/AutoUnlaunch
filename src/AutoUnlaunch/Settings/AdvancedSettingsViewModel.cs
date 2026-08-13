@@ -16,16 +16,6 @@ internal partial class AdvancedSettingsViewModel : ObservableObject
     private readonly IMessenger _messenger;
     private readonly ILogger<AdvancedSettingsViewModel> _logger;
 
-    [ObservableProperty]
-    public partial ComboBoxOption<AppExitBehavior> SelectedExitBehavior { get; set; }
-
-    [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(IsLoggingLevelWarningVisible))]
-    public partial ComboBoxOption<LogLevel> SelectedLogLevel { get; set; }
-
-    [ObservableProperty]
-    public partial bool IsExporting { get; set; }
-
     public AdvancedSettingsViewModel(ISettingsService settingsService,
         ILogLevelManager logLevelManager,
         ILogExporter logExporter,
@@ -60,6 +50,16 @@ internal partial class AdvancedSettingsViewModel : ObservableObject
     ];
 
     public bool IsLoggingLevelWarningVisible => SelectedLogLevel.Value == LogLevel.Debug;
+
+    [ObservableProperty]
+    public partial ComboBoxOption<AppExitBehavior> SelectedExitBehavior { get; set; }
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsLoggingLevelWarningVisible))]
+    public partial ComboBoxOption<LogLevel> SelectedLogLevel { get; set; }
+
+    [ObservableProperty]
+    public partial bool IsExporting { get; private set; }
 
     [RelayCommand]
     private async Task ExportLogsAsync()
