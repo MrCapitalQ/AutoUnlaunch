@@ -33,8 +33,8 @@ So I don't like game launchers. I just want to be able to launch a game from an 
 ### Prerequisites
 - Visual Studio 2022
   - Windows application development workload
-  - Windows 11 SDK (10.0.22621.0)
-- .NET 8 SDK
+  - Windows 11 SDK (10.0.26100.0)
+- .NET 10 SDK
 
 ### Build and Run
 1. Open the [`AutoUnlaunch.sln`](/AutoUnlaunch.sln) solution.
