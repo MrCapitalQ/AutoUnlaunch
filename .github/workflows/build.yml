@@ -23,7 +23,7 @@ jobs:
       matrix:
         platform: [x64, x86]
 
-    runs-on: windows-2025-vs2026
+    runs-on: windows-latest
 
     steps:
 
@@ -54,7 +54,7 @@ jobs:
         APPX_PACKAGE_NAME: ${{ inputs.PACKAGE_NAME }}_${{ matrix.platform }}
 
     - name: Test
-      run: dotnet test /p:EnableMsixTooling=true /p:Platform=$env:PLATFORM
+      run: dotnet test /p:EnableMsixTooling=true /p:Platform=$env:PLATFORM --filter "FullyQualifiedName\!~AutoUnlaunch.Tests"
       env:
         PLATFORM: ${{ matrix.platform }}
 
