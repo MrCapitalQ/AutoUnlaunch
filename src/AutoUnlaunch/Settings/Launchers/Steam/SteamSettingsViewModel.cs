@@ -25,18 +25,6 @@ internal partial class SteamSettingsViewModel : LauncherSettingsViewModel, IStea
     private readonly IMessenger _messenger;
     private readonly IProtocolLauncher _protocolLauncher;
 
-    [ObservableProperty]
-    private bool _hidesShutdownScreen;
-
-    [ObservableProperty]
-    private bool _hidesOnActivityStart;
-
-    [ObservableProperty]
-    private bool _hidesOnActivityEnd;
-
-    [ObservableProperty]
-    private bool _showUnnestedInStartMenu;
-
     public SteamSettingsViewModel(SteamSettingsService settingsService,
         IMessenger messenger,
         IProtocolLauncher protocolLauncher)
@@ -46,11 +34,23 @@ internal partial class SteamSettingsViewModel : LauncherSettingsViewModel, IStea
         _messenger = messenger;
         _protocolLauncher = protocolLauncher;
 
-        _hidesShutdownScreen = _settingsService.GetHidesShutdownScreen();
-        _hidesOnActivityStart = _settingsService.GetHidesOnActivityStart();
-        _hidesOnActivityEnd = _settingsService.GetHidesOnActivityEnd();
-        _showUnnestedInStartMenu = _settingsService.GetShowUnnestedInStartMenu();
+        HidesShutdownScreen = _settingsService.GetHidesShutdownScreen();
+        HidesOnActivityStart = _settingsService.GetHidesOnActivityStart();
+        HidesOnActivityEnd = _settingsService.GetHidesOnActivityEnd();
+        ShowUnnestedInStartMenu = _settingsService.GetShowUnnestedInStartMenu();
     }
+
+    [ObservableProperty]
+    public partial bool HidesShutdownScreen { get; set; }
+
+    [ObservableProperty]
+    public partial bool HidesOnActivityStart { get; set; }
+
+    [ObservableProperty]
+    public partial bool HidesOnActivityEnd { get; set; }
+
+    [ObservableProperty]
+    public partial bool ShowUnnestedInStartMenu { get; set; }
 
     public override IEnumerable<ComboBoxOption<LauncherStopMethod>> StopMethodOptions => s_stopMethodOptions;
 

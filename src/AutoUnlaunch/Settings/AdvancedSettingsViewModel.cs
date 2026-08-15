@@ -16,16 +16,6 @@ internal partial class AdvancedSettingsViewModel : ObservableObject
     private readonly IMessenger _messenger;
     private readonly ILogger<AdvancedSettingsViewModel> _logger;
 
-    [ObservableProperty]
-    private ComboBoxOption<AppExitBehavior> _selectedExitBehavior;
-
-    [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(IsLoggingLevelWarningVisible))]
-    private ComboBoxOption<LogLevel> _selectedLogLevel;
-
-    [ObservableProperty]
-    private bool _isExporting;
-
     public AdvancedSettingsViewModel(ISettingsService settingsService,
         ILogLevelManager logLevelManager,
         ILogExporter logExporter,
@@ -38,10 +28,10 @@ internal partial class AdvancedSettingsViewModel : ObservableObject
         _messenger = messenger;
         _logger = logger;
 
-        _selectedExitBehavior = ExitBehaviorOptions.FirstOrDefault(x => x.Value == _settingsService.GetAppExitBehavior())
+        SelectedExitBehavior = ExitBehaviorOptions.FirstOrDefault(x => x.Value == _settingsService.GetAppExitBehavior())
             ?? ExitBehaviorOptions.First(x => x.Value == AppExitBehavior.RunInBackground);
 
-        _selectedLogLevel = LogLevelOptions.FirstOrDefault(x => x.Value == _settingsService.GetMinimumLogLevel())
+        SelectedLogLevel = LogLevelOptions.FirstOrDefault(x => x.Value == _settingsService.GetMinimumLogLevel())
             ?? LogLevelOptions.First(x => x.Value == LogLevel.Information);
     }
 
@@ -60,6 +50,16 @@ internal partial class AdvancedSettingsViewModel : ObservableObject
     ];
 
     public bool IsLoggingLevelWarningVisible => SelectedLogLevel.Value == LogLevel.Debug;
+
+    [ObservableProperty]
+    public partial ComboBoxOption<AppExitBehavior> SelectedExitBehavior { get; set; }
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsLoggingLevelWarningVisible))]
+    public partial ComboBoxOption<LogLevel> SelectedLogLevel { get; set; }
+
+    [ObservableProperty]
+    public partial bool IsExporting { get; private set; }
 
     [RelayCommand]
     private async Task ExportLogsAsync()

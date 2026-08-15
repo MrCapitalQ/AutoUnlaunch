@@ -23,6 +23,9 @@ public partial class App : Application
         AppInstance.GetCurrent().Activated += App_Activated;
     }
 
+    // Only required to satisfy generated code.
+    public App() => throw new NotSupportedException("This constructor is not supported. Use the constructor with IServiceProvider parameter.");
+
     public static new App Current => (App)Application.Current;
     public IServiceProvider Services { get; }
     public LifetimeWindow? LifetimeWindow { get; protected set; }

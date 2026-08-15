@@ -4,11 +4,9 @@
                   xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
                   xmlns:local="using:MrCapitalQ.AutoUnlaunch"
                   xmlns:winuiex="using:WinUIEx"
-                  xmlns:controls="using:MrCapitalQ.AutoUnlaunch.Controls"
                   xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
                   xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
                   mc:Ignorable="d"
-                  TaskBarIcon="Assets/AppIcon.ico"
                   Width="600"
                   Height="800"
                   MinWidth="400"
@@ -37,11 +35,15 @@
                                  Invoked="ForwardKeyboardAccelerator_Invoked" />
         </Grid.KeyboardAccelerators>
 
-        <controls:TitleBar x:Name="TitleBar"
-                           Icon="{x:Bind Icon}"
-                           Title="{x:Bind Title}"
-                           Window="{x:Bind}"
-                           BackRequested="TitleBar_BackRequested" />
+        <TitleBar x:Name="TitleBar"
+                  Title="{x:Bind Title}"
+                  BackRequested="TitleBar_BackRequested"
+                  IsBackButtonVisible="{x:Bind RootFrame.CanGoBack, Mode=OneWay}">
+            <TitleBar.IconSource>
+                <ImageIconSource ImageSource="Assets/AppIcon.ico" />
+            </TitleBar.IconSource>
+        </TitleBar>
+
         <Frame x:Name="RootFrame"
                Margin="0,12,0,0"
                Grid.Row="1" />

@@ -25,9 +25,6 @@ internal partial class EASettingsViewModel : LauncherSettingsViewModel, IEASetti
     private readonly IMessenger _messenger;
     private readonly IProtocolLauncher _protocolLauncher;
 
-    [ObservableProperty]
-    private bool _minimizesOnActivityEnd;
-
     public EASettingsViewModel(EASettingsService settingsService,
         IMessenger messenger,
         IProtocolLauncher protocolLauncher)
@@ -37,8 +34,11 @@ internal partial class EASettingsViewModel : LauncherSettingsViewModel, IEASetti
         _messenger = messenger;
         _protocolLauncher = protocolLauncher;
 
-        _minimizesOnActivityEnd = _settingsService.GetMinimizesOnActivityEnd();
+        MinimizesOnActivityEnd = _settingsService.GetMinimizesOnActivityEnd();
     }
+
+    [ObservableProperty]
+    public partial bool MinimizesOnActivityEnd { get; set; }
 
     public override IEnumerable<ComboBoxOption<LauncherStopMethod>> StopMethodOptions => s_stopMethodOptions;
 

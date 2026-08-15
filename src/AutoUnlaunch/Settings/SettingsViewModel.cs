@@ -23,12 +23,6 @@ internal partial class SettingsViewModel : ObservableObject
 
     private bool _isStartupOn;
 
-    [ObservableProperty]
-    private bool _isStartupToggleEnabled;
-
-    [ObservableProperty]
-    private string _startupSettingsText = string.Empty;
-
     public SettingsViewModel(IStartupTaskService startupTaskService,
         ISettingsService settingsService,
         IPackageInfo packageInfo,
@@ -53,6 +47,12 @@ internal partial class SettingsViewModel : ObservableObject
         Version = packageInfo.Version.ToFormattedString(3);
     }
 
+    [ObservableProperty]
+    public partial bool IsStartupToggleEnabled { get; private set; }
+
+    [ObservableProperty]
+    public partial string StartupSettingsText { get; private set; } = string.Empty;
+
     public bool IsStartupOn
     {
         get => _isStartupOn;
@@ -62,21 +62,21 @@ internal partial class SettingsViewModel : ObservableObject
     public string AppDisplayName { get; }
     public string Version { get; }
 
-    public IEnumerable<ExternalLinkViewModel> GeneralLinks =
-        [
-            new("Project GitHub page", "https://github.com/MrCapitalQ/AutoUnlaunch")
-        ];
+    public List<ExternalLinkViewModel> GeneralLinks = new()
+    {
+        new("Project GitHub page", "https://github.com/MrCapitalQ/AutoUnlaunch")
+    };
 
-    public IEnumerable<ExternalLinkViewModel> OpenSourceLibraryLinks =
-        [
-            new(".NET Community Toolkit", "https://github.com/CommunityToolkit/dotnet"),
-            new("H.NotifyIcon", "https://github.com/HavenDV/H.NotifyIcon"),
-            new("Serilog", "https://github.com/serilog/serilog"),
-            new("Windows App SDK", "https://github.com/microsoft/WindowsAppSDK"),
-            new("Windows Community Toolkit", "https://github.com/CommunityToolkit/Windows"),
-            new("WinUI", "https://github.com/microsoft/microsoft-ui-xaml"),
-            new("WinUIEx", "https://github.com/dotMorten/WinUIEx")
-        ];
+    public List<ExternalLinkViewModel> OpenSourceLibraryLinks = new()
+    {
+        new(".NET Community Toolkit", "https://github.com/CommunityToolkit/dotnet"),
+        new("H.NotifyIcon", "https://github.com/HavenDV/H.NotifyIcon"),
+        new("Serilog", "https://github.com/serilog/serilog"),
+        new("Windows App SDK", "https://github.com/microsoft/WindowsAppSDK"),
+        new("Windows Community Toolkit", "https://github.com/CommunityToolkit/Windows"),
+        new("WinUI", "https://github.com/microsoft/microsoft-ui-xaml"),
+        new("WinUIEx", "https://github.com/dotMorten/WinUIEx")
+    };
 
     public ISteamSettingsViewModel SteamSettings { get; }
     public IEASettingsViewModel EASettings { get; }
