@@ -26,7 +26,7 @@ jobs:
         "${{ github.workspace }}/MSIX-Toolkit/WindowsSDK/11/10.0.22000.0/x64" | Out-File -FilePath $env:GITHUB_PATH -Append
 
     - name: Download MSIX Packages
-      uses: actions/download-artifact@v4
+      uses: actions/download-artifact@v8
       with:
         pattern: '* MSIX Package'
         merge-multiple: true
@@ -116,7 +116,7 @@ jobs:
         MSIX_UPLOAD_PATH: ${{ github.workspace }}/${{ inputs.PACKAGE_NAME }}_${{ steps.determine-version.outputs.PACKAGE_VERSION }}.msixupload
 
     - name: Upload MS Store Package
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v7
       with:
         name: Store Upload Package
         path: ${{ github.workspace }}/${{ inputs.PACKAGE_NAME }}_${{ steps.determine-version.outputs.PACKAGE_VERSION }}.msixupload
