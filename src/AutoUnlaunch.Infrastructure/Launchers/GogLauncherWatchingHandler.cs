@@ -20,7 +20,7 @@ internal class GogLauncherWatchingHandler(IProcessWatcher processWatcher,
     private readonly ProcessWindowService _processWindowService = processWindowService;
     private readonly ILogger<GogLauncherWatchingHandler> _logger = logger;
 
-    protected override string LauncherName => "GOG Galaxy";
+    public override string LauncherName => "GOG Galaxy";
 
     protected override Task<bool> IsLauncherRunningAsync(CancellationToken cancellationToken)
     {

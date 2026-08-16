@@ -13,18 +13,30 @@ public abstract class LauncherWatchingHandler(IProcessWatcher processWatcher,
     private readonly ILogger _logger = logger;
     private readonly IDictionary<uint, ProcessInfo> _runningProcesses = new ConcurrentDictionary<uint, ProcessInfo>();
 
+    private bool _isStarted;
     private bool _isLauncherActivityRunning;
     private CancellationTokenSource? _delayedStopCts;
 
-    protected abstract string LauncherName { get; }
+    public abstract string LauncherName { get; }
+
+    public bool IsEnabled => _launcherSettingsService.GetIsLauncherEnabled();
 
     protected virtual Task<bool> IsLauncherActivityRunningAsync(CancellationToken cancellationToken = default)
         => Task.FromResult(_isLauncherActivityRunning);
 
     public void Start()
     {
-        _processWatcher.ProcessStarted -= ProcessWatcher_ProcessStartedAsync;
-        _processWatcher.ProcessStopped -= ProcessWatcher_ProcessStopped;
+        if (_isStarted)
+        {
+            _logger.LogTrace("Handler for {LauncherName} is already started.", LauncherName);
+            return;
+        }
+
+        Stop();
+
+        _logger.LogInformation("Starting handler for {LauncherName}.", LauncherName);
+
+        _isStarted = true;
 
         _processWatcher.ProcessStarted += ProcessWatcher_ProcessStartedAsync;
         _processWatcher.ProcessStopped += ProcessWatcher_ProcessStopped;
@@ -34,6 +46,26 @@ public abstract class LauncherWatchingHandler(IProcessWatcher processWatcher,
             if (IsLauncherActivity(processInfo))
                 _runningProcesses[processInfo.ProcessId] = processInfo;
         }
+    }
+
+    public void Stop()
+    {
+        if (!_isStarted)
+        {
+            _logger.LogTrace("Handler for {LauncherName} is already stopped.", LauncherName);
+            return;
+        }
+
+        _logger.LogInformation("Stopping handler for {LauncherName}.", LauncherName);
+
+        _isStarted = false;
+
+        _processWatcher.ProcessStarted -= ProcessWatcher_ProcessStartedAsync;
+        _processWatcher.ProcessStopped -= ProcessWatcher_ProcessStopped;
+
+        _runningProcesses.Clear();
+        _isLauncherActivityRunning = false;
+        CancelPendingStop();
     }
 
     protected abstract Task<bool> IsLauncherRunningAsync(CancellationToken cancellationToken = default);
@@ -121,10 +153,15 @@ public abstract class LauncherWatchingHandler(IProcessWatcher processWatcher,
         {
             _isLauncherActivityRunning = true;
 
-            _delayedStopCts?.Cancel();
-            _delayedStopCts = null;
+            CancelPendingStop();
 
             await OnLauncherActivityStarted();
         }
+    }
+
+    private void CancelPendingStop()
+    {
+        _delayedStopCts?.Cancel();
+        _delayedStopCts = null;
     }
 }

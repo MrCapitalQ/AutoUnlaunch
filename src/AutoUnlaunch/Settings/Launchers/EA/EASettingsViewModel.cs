@@ -28,7 +28,7 @@ internal partial class EASettingsViewModel : LauncherSettingsViewModel, IEASetti
     public EASettingsViewModel(EASettingsService settingsService,
         IMessenger messenger,
         IProtocolLauncher protocolLauncher)
-        : base(settingsService)
+        : base(settingsService, messenger)
     {
         _settingsService = settingsService;
         _messenger = messenger;
