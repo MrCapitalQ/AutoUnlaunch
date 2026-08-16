@@ -1,35 +1,24 @@
-﻿using GameFinder.Common;
-using GameFinder.RegistryUtils;
-using GameFinder.StoreHandlers.GOG;
-using Microsoft.Extensions.Logging;
+﻿using Microsoft.Extensions.Logging;
 using Microsoft.Win32;
+using MrCapitalQ.AutoUnlaunch.Core;
 using MrCapitalQ.AutoUnlaunch.Core.AppData;
-using NexusMods.Paths;
+using MrCapitalQ.AutoUnlaunch.Core.Launchers;
 using System.Diagnostics;
 
 namespace MrCapitalQ.AutoUnlaunch.Infrastructure.Launchers;
 
-internal class GogLauncherWatchingHandler : LauncherWatchingHandler
+internal class GogLauncherWatchingHandler(IProcessWatcher processWatcher,
+    GogSettingsService gogSettingsService,
+    ProcessWindowService processWindowService,
+    ILogger<GogLauncherWatchingHandler> logger)
+    : LauncherWatchingHandler(processWatcher, gogSettingsService, logger)
 {
     private const string LauncherProcessName = "GalaxyClient";
     private const string RegistryRootPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\WOW6432Node\GOG.com\GalaxyClient";
 
-    private readonly GogSettingsService _gogSettingsService;
-    private readonly ProcessWindowService _processWindowService;
-    private readonly ILogger<GogLauncherWatchingHandler> _logger;
-    private readonly GOGHandler _gogHandler;
-
-    public GogLauncherWatchingHandler(ProcessWatcher processWatcher,
-        GogSettingsService gogSettingsService,
-        ProcessWindowService processWindowService,
-        ILogger<GogLauncherWatchingHandler> logger) : base(processWatcher, gogSettingsService, logger)
-    {
-        _gogSettingsService = gogSettingsService;
-        _processWindowService = processWindowService;
-        _logger = logger;
-
-        _gogHandler = new GOGHandler(WindowsRegistry.Shared, FileSystem.Shared);
-    }
+    private readonly GogSettingsService _gogSettingsService = gogSettingsService;
+    private readonly ProcessWindowService _processWindowService = processWindowService;
+    private readonly ILogger<GogLauncherWatchingHandler> _logger = logger;
 
     protected override string LauncherName => "GOG Galaxy";
 
@@ -41,12 +30,11 @@ internal class GogLauncherWatchingHandler : LauncherWatchingHandler
 
     protected override bool IsLauncherActivity(ProcessInfo processInfo)
     {
-        var games = _gogHandler.FindAllGames().Where(x => x.IsT0).Select(x => x.AsGame());
         var processPath = !string.IsNullOrWhiteSpace(processInfo.ProcessPath)
             ? Path.GetFullPath(processInfo.ProcessPath)
             : null;
         return !string.IsNullOrEmpty(processPath)
-            && games.Any(x => processPath.StartsWith(Path.GetFullPath(x.Path.FileName), StringComparison.OrdinalIgnoreCase));
+            && GetGameInstallPaths().Any(x => processPath.StartsWith(Path.GetFullPath(x), StringComparison.OrdinalIgnoreCase));
     }
 
     protected override async Task StopLauncherAsync(CancellationToken cancellationToken)
@@ -83,6 +71,39 @@ internal class GogLauncherWatchingHandler : LauncherWatchingHandler
         foreach (var process in launcherProcessesResult.Items)
         {
             await _processWindowService.EnsureWindowsClosedAsync(process.Id);
+        }
+    }
+
+    private IEnumerable<string> GetGameInstallPaths()
+    {
+        using var gamesSubKey = Registry.LocalMachine.OpenSubKey($@"SOFTWARE\WOW6432Node\GOG.com\Games");
+        if (gamesSubKey is null)
+        {
+            _logger.LogWarning("Could not open GOG games registry sub key.");
+            yield break;
+        }
+
+        foreach (var gameSubKeyName in gamesSubKey.GetSubKeyNames())
+        {
+            using var gameSubKey = gamesSubKey.OpenSubKey(gameSubKeyName);
+            if (gameSubKey is null)
+            {
+                _logger.LogWarning("Could not open GOG game registry sub key {GogGameSubKeyName}.", gameSubKeyName);
+                continue;
+            }
+
+            var path = gameSubKey.GetValue("path")?.ToString();
+            if (string.IsNullOrEmpty(path))
+            {
+                _logger.LogWarning("GOG game registry sub key {GogGameSubKeyName} does not have an entry for 'path'.",
+                    gameSubKeyName);
+                continue;
+            }
+
+            _logger.LogDebug("Found GOG game {GogGameSubKeyName} installed at {GogGameInstallPath}.",
+                gameSubKeyName,
+                path);
+            yield return path;
         }
     }
 

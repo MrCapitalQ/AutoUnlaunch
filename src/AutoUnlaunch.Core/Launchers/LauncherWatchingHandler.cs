@@ -1,35 +1,40 @@
 ﻿using Microsoft.Extensions.Logging;
 using MrCapitalQ.AutoUnlaunch.Core.AppData;
-using MrCapitalQ.AutoUnlaunch.Core.Launchers;
 using System.Collections.Concurrent;
 
-namespace MrCapitalQ.AutoUnlaunch.Infrastructure.Launchers;
+namespace MrCapitalQ.AutoUnlaunch.Core.Launchers;
 
-
-internal abstract class LauncherWatchingHandler : ILauncherWatchingHandler
+public abstract class LauncherWatchingHandler(IProcessWatcher processWatcher,
+    LauncherSettingsService launcherSettingsService,
+    ILogger logger) : ILauncherWatchingHandler
 {
-    private readonly ProcessWatcher _processWatcher;
-    private readonly LauncherSettingsService _launcherSettingsService;
-    private readonly ILogger _logger;
+    private readonly IProcessWatcher _processWatcher = processWatcher;
+    private readonly LauncherSettingsService _launcherSettingsService = launcherSettingsService;
+    private readonly ILogger _logger = logger;
     private readonly IDictionary<uint, ProcessInfo> _runningProcesses = new ConcurrentDictionary<uint, ProcessInfo>();
 
     private bool _isLauncherActivityRunning;
     private CancellationTokenSource? _delayedStopCts;
 
-    public LauncherWatchingHandler(ProcessWatcher processWatcher, LauncherSettingsService launcherSettingsService, ILogger logger)
-    {
-        _processWatcher = processWatcher;
-        _launcherSettingsService = launcherSettingsService;
-        _logger = logger;
-
-        _processWatcher.ProcessStarted += ProcessWatcher_ProcessStartedAsync;
-        _processWatcher.ProcessStopped += ProcessWatcher_ProcessStopped;
-    }
-
     protected abstract string LauncherName { get; }
 
     protected virtual Task<bool> IsLauncherActivityRunningAsync(CancellationToken cancellationToken = default)
         => Task.FromResult(_isLauncherActivityRunning);
+
+    public void Start()
+    {
+        _processWatcher.ProcessStarted -= ProcessWatcher_ProcessStartedAsync;
+        _processWatcher.ProcessStopped -= ProcessWatcher_ProcessStopped;
+
+        _processWatcher.ProcessStarted += ProcessWatcher_ProcessStartedAsync;
+        _processWatcher.ProcessStopped += ProcessWatcher_ProcessStopped;
+
+        foreach (var processInfo in _processWatcher.GetCurrentProcesses())
+        {
+            if (IsLauncherActivity(processInfo))
+                _runningProcesses[processInfo.ProcessId] = processInfo;
+        }
+    }
 
     protected abstract Task<bool> IsLauncherRunningAsync(CancellationToken cancellationToken = default);
     protected abstract bool IsLauncherActivity(ProcessInfo processInfo);
@@ -40,24 +45,7 @@ internal abstract class LauncherWatchingHandler : ILauncherWatchingHandler
     private async void ProcessWatcher_ProcessStartedAsync(object? sender, ProcessEventArgs e)
     {
         // TODO: Capture/handle errors in this async void method
-        if (!IsLauncherActivity(e.ProcessInfo))
-            return;
-
-        _logger.LogInformation("An activity for {LauncherName} started with process info {ProcessInfo}.",
-            LauncherName,
-            e.ProcessInfo);
-        _runningProcesses[e.ProcessInfo.ProcessId] = e.ProcessInfo;
-
-        if (!_isLauncherActivityRunning)
-        {
-            _isLauncherActivityRunning = true;
-
-            _delayedStopCts?.Cancel();
-            _delayedStopCts = null;
-
-            await OnLauncherActivityStarted();
-        }
-
+        await HandleProcessStartAsync(e.ProcessInfo);
     }
 
     private async void ProcessWatcher_ProcessStopped(object? sender, ProcessEventArgs e)
@@ -102,8 +90,41 @@ internal abstract class LauncherWatchingHandler : ILauncherWatchingHandler
         });
     }
 
-    public async Task StartWatchingAsync()
+    private async Task HandleProcessStartAsync(ProcessInfo processInfo)
     {
-        await Task.CompletedTask;
+        _logger.LogDebug("Handling {LauncherName} process start detection for process {ProcessInfo}.",
+            LauncherName,
+            processInfo);
+
+        if (_runningProcesses.ContainsKey(processInfo.ProcessId))
+        {
+            _logger.LogDebug("Activity for {LauncherName} already being tracked for process {ProcessInfo}.",
+                LauncherName,
+                processInfo);
+            return;
+        }
+
+        if (!IsLauncherActivity(processInfo))
+        {
+            _logger.LogDebug("No activity for {LauncherName} matched for for process {ProcessInfo}.",
+                LauncherName,
+                processInfo);
+            return;
+        }
+
+        _logger.LogInformation("An activity for {LauncherName} started with process info {ProcessInfo}.",
+            LauncherName,
+            processInfo);
+        _runningProcesses[processInfo.ProcessId] = processInfo;
+
+        if (!_isLauncherActivityRunning)
+        {
+            _isLauncherActivityRunning = true;
+
+            _delayedStopCts?.Cancel();
+            _delayedStopCts = null;
+
+            await OnLauncherActivityStarted();
+        }
     }
 }

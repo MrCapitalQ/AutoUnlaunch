@@ -2,5 +2,5 @@
 
 public interface ILauncherWatchingHandler
 {
-    Task StartWatchingAsync();
+    void Start();
 }

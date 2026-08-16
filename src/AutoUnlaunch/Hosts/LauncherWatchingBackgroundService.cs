@@ -6,7 +6,7 @@ using System.Diagnostics.CodeAnalysis;
 namespace MrCapitalQ.AutoUnlaunch.Hosts;
 
 [ExcludeFromCodeCoverage]
-internal class LauncherWatchingBackgroundService(IEnumerable<ILauncherWatchingHandler> handlers,
+internal partial class LauncherWatchingBackgroundService(IEnumerable<ILauncherWatchingHandler> handlers,
     ILogger<LauncherWatchingBackgroundService> logger) : BackgroundService
 {
     private readonly ISet<ILauncherWatchingHandler> _handlers = handlers.ToHashSet();
@@ -16,7 +16,7 @@ internal class LauncherWatchingBackgroundService(IEnumerable<ILauncherWatchingHa
     {
         foreach (var handler in _handlers)
         {
-            await handler.StartWatchingAsync();
+            handler.Start();
         }
         await Task.Delay(-1, stoppingToken);
     }

@@ -1,9 +1,11 @@
 ﻿using Microsoft.Extensions.Logging;
+using MrCapitalQ.AutoUnlaunch.Core;
+using System.Diagnostics;
 using System.Management;
 
 namespace MrCapitalQ.AutoUnlaunch.Infrastructure;
 
-internal class ProcessWatcher
+internal class ProcessWatcher : IProcessWatcher
 {
     public event EventHandler<ProcessEventArgs>? ProcessStarted;
     public event EventHandler<ProcessEventArgs>? ProcessStopped;
@@ -38,6 +40,22 @@ internal class ProcessWatcher
         processStopWatcher.Start();
     }
 
+    public IEnumerable<ProcessInfo> GetCurrentProcesses()
+    {
+        foreach (var process in Process.GetProcesses())
+        {
+            ProcessInfo? processInfo = null;
+            try
+            {
+                processInfo = new((uint)process.Id, process.ProcessName, process.MainModule?.FileName);
+            }
+            catch { }
+
+            if (processInfo is not null)
+                yield return processInfo;
+        }
+    }
+
     protected void OnProcessStarted(ProcessInfo processInfo)
     {
         var raiseEvent = ProcessStarted;
@@ -54,10 +72,3 @@ internal class ProcessWatcher
         _logger.LogDebug("Process stopped: {ProcessInfo}", processInfo);
     }
 }
-
-internal class ProcessEventArgs(ProcessInfo processInfo) : EventArgs
-{
-    public ProcessInfo ProcessInfo { get; } = processInfo;
-}
-
-internal record ProcessInfo(uint ProcessId, string ProcessName, string? ProcessPath);
