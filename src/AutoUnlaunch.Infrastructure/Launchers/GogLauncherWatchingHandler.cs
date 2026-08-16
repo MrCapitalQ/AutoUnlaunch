@@ -1,24 +1,35 @@
-﻿using Microsoft.Extensions.Logging;
+﻿using GameFinder.Common;
+using GameFinder.RegistryUtils;
+using GameFinder.StoreHandlers.GOG;
+using Microsoft.Extensions.Logging;
 using Microsoft.Win32;
 using MrCapitalQ.AutoUnlaunch.Core.AppData;
+using NexusMods.Paths;
 using System.Diagnostics;
 
 namespace MrCapitalQ.AutoUnlaunch.Infrastructure.Launchers;
 
-internal class GogLauncherWatchingHandler(ProcessWatcher processWatcher,
-    GogSettingsService gogSettingsService,
-    GogGalaxyLibrary gogGalaxyLibrary,
-    ProcessWindowService processWindowService,
-    ILogger<GogLauncherWatchingHandler> logger)
-    : LauncherWatchingHandler(processWatcher, gogSettingsService, logger)
+internal class GogLauncherWatchingHandler : LauncherWatchingHandler
 {
     private const string LauncherProcessName = "GalaxyClient";
     private const string RegistryRootPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\WOW6432Node\GOG.com\GalaxyClient";
 
-    private readonly GogSettingsService _gogSettingsService = gogSettingsService;
-    private readonly GogGalaxyLibrary _gogGalaxyLibrary = gogGalaxyLibrary;
-    private readonly ProcessWindowService _processWindowService = processWindowService;
-    private readonly ILogger<GogLauncherWatchingHandler> _logger = logger;
+    private readonly GogSettingsService _gogSettingsService;
+    private readonly ProcessWindowService _processWindowService;
+    private readonly ILogger<GogLauncherWatchingHandler> _logger;
+    private readonly GOGHandler _gogHandler;
+
+    public GogLauncherWatchingHandler(ProcessWatcher processWatcher,
+        GogSettingsService gogSettingsService,
+        ProcessWindowService processWindowService,
+        ILogger<GogLauncherWatchingHandler> logger) : base(processWatcher, gogSettingsService, logger)
+    {
+        _gogSettingsService = gogSettingsService;
+        _processWindowService = processWindowService;
+        _logger = logger;
+
+        _gogHandler = new GOGHandler(WindowsRegistry.Shared, FileSystem.Shared);
+    }
 
     protected override string LauncherName => "GOG Galaxy";
 
@@ -30,12 +41,12 @@ internal class GogLauncherWatchingHandler(ProcessWatcher processWatcher,
 
     protected override bool IsLauncherActivity(ProcessInfo processInfo)
     {
-        var games = _gogGalaxyLibrary.GetForCurrentUser();
+        var games = _gogHandler.FindAllGames().Where(x => x.IsT0).Select(x => x.AsGame());
         var processPath = !string.IsNullOrWhiteSpace(processInfo.ProcessPath)
             ? Path.GetFullPath(processInfo.ProcessPath)
             : null;
         return !string.IsNullOrEmpty(processPath)
-            && games.Any(x => processPath.StartsWith(Path.GetFullPath(x.InstallPath), StringComparison.OrdinalIgnoreCase));
+            && games.Any(x => processPath.StartsWith(Path.GetFullPath(x.Path.FileName), StringComparison.OrdinalIgnoreCase));
     }
 
     protected override async Task StopLauncherAsync(CancellationToken cancellationToken)

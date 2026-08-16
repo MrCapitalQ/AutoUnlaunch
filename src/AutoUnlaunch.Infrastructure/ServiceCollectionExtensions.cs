@@ -53,7 +53,6 @@ public static class ServiceCollectionExtensions
         services.TryAddTransient<GogSettingsService>();
         services.TryAddTransient<LauncherChildProcessChecker>();
         services.TryAddTransient<ProcessWindowService>();
-        services.TryAddTransient<GogGalaxyLibrary>();
         services.TryAddSingleton<ProcessWatcher>();
         return services;
     }
