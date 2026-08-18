@@ -5,6 +5,6 @@ public interface ILauncherWatchingHandler
     string LauncherName { get; }
     bool IsEnabled { get; }
 
-    void Start();
-    void Stop();
+    Task StartAsync();
+    Task StopAsync();
 }

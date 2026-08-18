@@ -18,36 +18,33 @@ internal partial class LauncherWatchingBackgroundService(IEnumerable<ILauncherWa
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        UpdateHandlerRunningState();
+        await UpdateHandlerRunningStateAsync();
 
         _messenger.Register<LauncherHandlerIsEnabledChangedMessage>(this, async (r, m) =>
         {
             _logger.LogInformation("A handler was enabled or disabled. Starting and stopping handlers as needed.");
 
-            await Task.Run(() =>
+            try
             {
-                try
-                {
-                    UpdateHandlerRunningState();
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogError(ex, "Something went wrong while starting and stopping handlers.");
-                }
-            });
+                await UpdateHandlerRunningStateAsync();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Something went wrong while starting and stopping handlers.");
+            }
         });
 
         await Task.Delay(-1, stoppingToken);
     }
 
-    private void UpdateHandlerRunningState()
+    private async Task UpdateHandlerRunningStateAsync()
     {
         foreach (var handler in _handlers)
         {
             if (handler.IsEnabled)
-                handler.Start();
+                await handler.StartAsync();
             else
-                handler.Stop();
+                await handler.StopAsync();
         }
     }
 }

@@ -4,21 +4,56 @@ using MrCapitalQ.AutoUnlaunch.Core;
 using MrCapitalQ.AutoUnlaunch.Core.AppData;
 using MrCapitalQ.AutoUnlaunch.Core.Launchers;
 using System.Diagnostics;
+using System.Management;
 
 namespace MrCapitalQ.AutoUnlaunch.Infrastructure.Launchers;
 
-internal class GogLauncherWatchingHandler(IProcessWatcher processWatcher,
-    GogSettingsService gogSettingsService,
-    ProcessWindowService processWindowService,
-    ILogger<GogLauncherWatchingHandler> logger)
-    : LauncherWatchingHandler(processWatcher, gogSettingsService, logger)
+internal partial class GogLauncherWatchingHandler : LauncherWatchingHandler
 {
     private const string LauncherProcessName = "GalaxyClient";
     private const string RegistryRootPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\WOW6432Node\GOG.com\GalaxyClient";
 
-    private readonly GogSettingsService _gogSettingsService = gogSettingsService;
-    private readonly ProcessWindowService _processWindowService = processWindowService;
-    private readonly ILogger<GogLauncherWatchingHandler> _logger = logger;
+    private readonly GogSettingsService _gogSettingsService;
+    private readonly ProcessWindowService _processWindowService;
+    private readonly ILogger<GogLauncherWatchingHandler> _logger;
+    private readonly SemaphoreSlim _lock = new(0, 1);
+    private readonly Dictionary<long, string> _installPaths = [];
+
+    public GogLauncherWatchingHandler(IProcessWatcher processWatcher,
+        GogSettingsService gogSettingsService,
+        ProcessWindowService processWindowService,
+        ILogger<GogLauncherWatchingHandler> logger) : base(processWatcher, gogSettingsService, logger)
+    {
+        _gogSettingsService = gogSettingsService;
+        _processWindowService = processWindowService;
+        _logger = logger;
+
+        var query = """
+            SELECT *
+            FROM RegistryTreeChangeEvent
+            WHERE Hive = 'HKEY_LOCAL_MACHINE'
+            AND RootPath = 'SOFTWARE\\WOW6432Node\\GOG.com'
+            """;
+        var registryTreeWatcher = new ManagementEventWatcher(@"\\.\root\default", query);
+        registryTreeWatcher.EventArrived += async (sender, e) =>
+        {
+            await _lock.WaitAsync();
+
+            try
+            {
+                UpdateInstallPaths();
+            }
+            finally
+            {
+                _lock.Release();
+            }
+        };
+        registryTreeWatcher.Start();
+
+        UpdateInstallPaths();
+
+        _lock.Release();
+    }
 
     public override string LauncherName => "GOG Galaxy";
 
@@ -28,13 +63,25 @@ internal class GogLauncherWatchingHandler(IProcessWatcher processWatcher,
         return Task.FromResult(launcherProcessesResult.Items.Any());
     }
 
-    protected override bool IsLauncherActivity(ProcessInfo processInfo)
+    protected override async Task<bool> IsLauncherActivityAsync(ProcessInfo processInfo)
     {
         var processPath = !string.IsNullOrWhiteSpace(processInfo.ProcessPath)
             ? Path.GetFullPath(processInfo.ProcessPath)
             : null;
-        return !string.IsNullOrEmpty(processPath)
-            && GetGameInstallPaths().Any(x => processPath.StartsWith(Path.GetFullPath(x), StringComparison.OrdinalIgnoreCase));
+
+        if (string.IsNullOrEmpty(processPath))
+            return false;
+
+        await _lock.WaitAsync();
+
+        try
+        {
+            return _installPaths.Values.Any(x => processPath.StartsWith(Path.GetFullPath(x), StringComparison.OrdinalIgnoreCase));
+        }
+        finally
+        {
+            _lock.Release();
+        }
     }
 
     protected override async Task StopLauncherAsync(CancellationToken cancellationToken)
@@ -47,9 +94,7 @@ internal class GogLauncherWatchingHandler(IProcessWatcher processWatcher,
                 {
                     foreach (var process in launcherProcessesResult.Items)
                     {
-                        _logger.LogInformation("Killing process {ProcessName} ({ProcessId}).",
-                            process.ProcessName,
-                            process.Id);
+                        _logger.LogKillingProcess(process.ProcessName, process.Id);
                         process.Kill();
                     }
                 }
@@ -74,17 +119,27 @@ internal class GogLauncherWatchingHandler(IProcessWatcher processWatcher,
         }
     }
 
-    private IEnumerable<string> GetGameInstallPaths()
+    private void UpdateInstallPaths()
     {
+        _logger.LogInformation("Updating GOG game install locations.");
+
+        _installPaths.Clear();
+
         using var gamesSubKey = Registry.LocalMachine.OpenSubKey($@"SOFTWARE\WOW6432Node\GOG.com\Games");
         if (gamesSubKey is null)
         {
             _logger.LogWarning("Could not open GOG games registry sub key.");
-            yield break;
+            return;
         }
 
         foreach (var gameSubKeyName in gamesSubKey.GetSubKeyNames())
         {
+            if (!long.TryParse(gameSubKeyName, out var gogGameId))
+            {
+                _logger.LogWarning("Skipping registry sub key {GogGameSubKeyName} becuase it is not a valid GOG game ID.", gameSubKeyName);
+                continue;
+            }
+
             using var gameSubKey = gamesSubKey.OpenSubKey(gameSubKeyName);
             if (gameSubKey is null)
             {
@@ -100,10 +155,9 @@ internal class GogLauncherWatchingHandler(IProcessWatcher processWatcher,
                 continue;
             }
 
-            _logger.LogDebug("Found GOG game {GogGameSubKeyName} installed at {GogGameInstallPath}.",
-                gameSubKeyName,
-                path);
-            yield return path;
+            LogFoundGame(gogGameId, path);
+
+            _installPaths[gogGameId] = path;
         }
     }
 
@@ -129,11 +183,17 @@ internal class GogLauncherWatchingHandler(IProcessWatcher processWatcher,
             };
             shutdownCommand.Start();
             await shutdownCommand.WaitForExitAsync(cancellationToken);
-            _logger.LogInformation("Request to gracefully shutdown {LauncherName} succeeded.", LauncherName);
+            LogGracefulShutdownSucceeded(LauncherName);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Request to gracefully shutdown {LauncherName} failed.", LauncherName);
         }
     }
+
+    [LoggerMessage(Level = LogLevel.Debug, Message = "Found GOG game {GogGameId} installed at {GogGameInstallPath}.")]
+    private partial void LogFoundGame(long gogGameId, string gogGameInstallPath);
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "Request to gracefully shutdown {LauncherName} succeeded.")]
+    private partial void LogGracefulShutdownSucceeded(string launcherName);
 }
