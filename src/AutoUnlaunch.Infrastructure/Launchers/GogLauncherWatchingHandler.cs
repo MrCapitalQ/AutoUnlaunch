@@ -22,7 +22,8 @@ internal partial class GogLauncherWatchingHandler : LauncherWatchingHandler
     public GogLauncherWatchingHandler(IProcessWatcher processWatcher,
         GogSettingsService gogSettingsService,
         ProcessWindowService processWindowService,
-        ILogger<GogLauncherWatchingHandler> logger) : base(processWatcher, gogSettingsService, logger)
+        TimeProvider timeProvider,
+        ILogger<GogLauncherWatchingHandler> logger) : base(processWatcher, gogSettingsService, timeProvider, logger)
     {
         _gogSettingsService = gogSettingsService;
         _processWindowService = processWindowService;

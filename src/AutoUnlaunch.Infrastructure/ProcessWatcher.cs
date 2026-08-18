@@ -5,7 +5,7 @@ using System.Management;
 
 namespace MrCapitalQ.AutoUnlaunch.Infrastructure;
 
-internal class ProcessWatcher : IProcessWatcher
+internal partial class ProcessWatcher : IProcessWatcher
 {
     public event EventHandler<ProcessEventArgs>? ProcessStarted;
     public event EventHandler<ProcessEventArgs>? ProcessStopped;
@@ -58,17 +58,23 @@ internal class ProcessWatcher : IProcessWatcher
 
     protected void OnProcessStarted(ProcessInfo processInfo)
     {
+        LogProcessStarted(processInfo);
+
         var raiseEvent = ProcessStarted;
         raiseEvent?.Invoke(this, new ProcessEventArgs(processInfo));
-
-        _logger.LogDebug("Process started: {ProcessInfo}", processInfo);
     }
 
     protected void OnProcessStopped(ProcessInfo processInfo)
     {
+        LogProcessStopped(processInfo);
+
         var raiseEvent = ProcessStopped;
         raiseEvent?.Invoke(this, new ProcessEventArgs(processInfo));
-
-        _logger.LogDebug("Process stopped: {ProcessInfo}", processInfo);
     }
+
+    [LoggerMessage(Level = LogLevel.Debug, Message = "Process started: {ProcessInfo}")]
+    private partial void LogProcessStarted(ProcessInfo processInfo);
+
+    [LoggerMessage(Level = LogLevel.Debug, Message = "Process stopped: {ProcessInfo}")]
+    private partial void LogProcessStopped(ProcessInfo processInfo);
 }

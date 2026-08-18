@@ -6,10 +6,12 @@ namespace MrCapitalQ.AutoUnlaunch.Core.Launchers;
 
 public abstract partial class LauncherWatchingHandler(IProcessWatcher processWatcher,
     LauncherSettingsService launcherSettingsService,
+    TimeProvider timeProvider,
     ILogger logger) : ILauncherWatchingHandler
 {
     private readonly IProcessWatcher _processWatcher = processWatcher;
     private readonly LauncherSettingsService _launcherSettingsService = launcherSettingsService;
+    private readonly TimeProvider _timeProvider = timeProvider;
     private readonly ILogger _logger = logger;
     private readonly IDictionary<uint, ProcessInfo> _runningProcesses = new ConcurrentDictionary<uint, ProcessInfo>();
 
@@ -165,7 +167,7 @@ public abstract partial class LauncherWatchingHandler(IProcessWatcher processWat
         LogSchedulingLauncherStop(LauncherName, stopDelayInSeconds);
 
         _delayedStopCts = new CancellationTokenSource();
-        await Task.Delay(TimeSpan.FromSeconds(stopDelayInSeconds), _delayedStopCts.Token).ContinueWith(async x =>
+        await Task.Delay(TimeSpan.FromSeconds(stopDelayInSeconds), _timeProvider, _delayedStopCts.Token).ContinueWith(async x =>
         {
             if (x.IsCanceled)
             {
