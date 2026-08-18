@@ -18,7 +18,7 @@ internal partial class LauncherTrackingBackgroundService(IEnumerable<ILauncherTr
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        await UpdateHandlerRunningStateAsync();
+        await UpdateHandlerRunningStateAsync(stoppingToken);
 
         _messenger.Register<LauncherHandlerIsEnabledChangedMessage>(this, async (r, m) =>
         {
@@ -37,19 +37,19 @@ internal partial class LauncherTrackingBackgroundService(IEnumerable<ILauncherTr
         await Task.Delay(-1, stoppingToken);
     }
 
-    private async Task UpdateHandlerRunningStateAsync()
+    private async Task UpdateHandlerRunningStateAsync(CancellationToken cancellationToken = default)
     {
         foreach (var handler in _handlers)
         {
             if (handler.IsEnabled && !handler.IsStarted)
             {
                 LogStartingHandler(handler.LauncherName);
-                await handler.StartAsync();
+                await handler.StartAsync(cancellationToken);
             }
             else if (!handler.IsEnabled && handler.IsStarted)
             {
                 LogStoppingHandler(handler.LauncherName);
-                await handler.StopAsync();
+                await handler.StopAsync(cancellationToken);
             }
         }
     }

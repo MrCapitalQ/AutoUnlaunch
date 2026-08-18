@@ -8,55 +8,56 @@ using System.Management;
 
 namespace MrCapitalQ.AutoUnlaunch.Infrastructure.Launchers;
 
-internal partial class GogLauncherProcessTrackingHandler : LauncherProcessTrackingHandler
+internal partial class GogLauncherProcessTrackingHandler(IProcessWatcher processWatcher,
+    GogSettingsService gogSettingsService,
+    ProcessWindowService processWindowService,
+    TimeProvider timeProvider,
+    ILogger<GogLauncherProcessTrackingHandler> logger)
+    : LauncherProcessTrackingHandler(processWatcher, gogSettingsService, timeProvider, logger)
 {
     private const string LauncherProcessName = "GalaxyClient";
     private const string RegistryRootPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\WOW6432Node\GOG.com\GalaxyClient";
+    private const string RegistryWatcherQuery = """
+        SELECT *
+        FROM RegistryTreeChangeEvent
+        WHERE Hive = 'HKEY_LOCAL_MACHINE'
+        AND RootPath = 'SOFTWARE\\WOW6432Node\\GOG.com'
+        """;
 
-    private readonly GogSettingsService _gogSettingsService;
-    private readonly ProcessWindowService _processWindowService;
-    private readonly ILogger<GogLauncherProcessTrackingHandler> _logger;
-    private readonly SemaphoreSlim _lock = new(0, 1);
+    private readonly GogSettingsService _gogSettingsService = gogSettingsService;
+    private readonly ProcessWindowService _processWindowService = processWindowService;
+    private readonly ILogger<GogLauncherProcessTrackingHandler> _logger = logger;
+    private readonly ManagementEventWatcher _registryTreeWatcher = new(new ManagementScope(@"root\default"), new EventQuery(RegistryWatcherQuery));
+    private readonly SemaphoreSlim _lock = new(1);
     private readonly Dictionary<long, string> _installPaths = [];
 
-    public GogLauncherProcessTrackingHandler(IProcessWatcher processWatcher,
-        GogSettingsService gogSettingsService,
-        ProcessWindowService processWindowService,
-        TimeProvider timeProvider,
-        ILogger<GogLauncherProcessTrackingHandler> logger) : base(processWatcher, gogSettingsService, timeProvider, logger)
+    public override string LauncherName => "GOG Galaxy";
+
+    protected override async Task StartCoreAsync(CancellationToken cancellationToken = default)
     {
-        _gogSettingsService = gogSettingsService;
-        _processWindowService = processWindowService;
-        _logger = logger;
+        await _lock.WaitAsync(cancellationToken);
 
-        var query = """
-            SELECT *
-            FROM RegistryTreeChangeEvent
-            WHERE Hive = 'HKEY_LOCAL_MACHINE'
-            AND RootPath = 'SOFTWARE\\WOW6432Node\\GOG.com'
-            """;
-        var registryTreeWatcher = new ManagementEventWatcher(@"\\.\root\default", query);
-        registryTreeWatcher.EventArrived += async (sender, e) =>
+        try
         {
-            await _lock.WaitAsync();
+            _registryTreeWatcher.EventArrived -= RegistryTreeWatcher_EventArrived;
+            _registryTreeWatcher.EventArrived += RegistryTreeWatcher_EventArrived;
+            _registryTreeWatcher.Start();
 
-            try
-            {
-                UpdateInstallPaths();
-            }
-            finally
-            {
-                _lock.Release();
-            }
-        };
-        registryTreeWatcher.Start();
-
-        UpdateInstallPaths();
-
-        _lock.Release();
+            UpdateInstallPaths();
+        }
+        finally
+        {
+            _lock.Release();
+        }
     }
 
-    public override string LauncherName => "GOG Galaxy";
+    protected override Task StopCoreAsync(CancellationToken cancellationToken = default)
+    {
+        _registryTreeWatcher.EventArrived -= RegistryTreeWatcher_EventArrived;
+        _registryTreeWatcher.Stop();
+
+        return Task.CompletedTask;
+    }
 
     protected override Task<bool> IsLauncherRunningAsync(CancellationToken cancellationToken)
     {
@@ -189,6 +190,24 @@ internal partial class GogLauncherProcessTrackingHandler : LauncherProcessTracki
         catch (Exception ex)
         {
             _logger.LogError(ex, "Request to gracefully shutdown {LauncherName} failed.", LauncherName);
+        }
+    }
+
+    private async void RegistryTreeWatcher_EventArrived(object sender, EventArrivedEventArgs e)
+    {
+        await _lock.WaitAsync();
+
+        try
+        {
+            UpdateInstallPaths();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Something went wrong while updating GOG game install paths.");
+        }
+        finally
+        {
+            _lock.Release();
         }
     }
 

@@ -25,7 +25,7 @@ public abstract partial class LauncherProcessTrackingHandler(IProcessWatcher pro
     protected virtual Task<bool> IsLauncherActivityRunningAsync(CancellationToken cancellationToken = default)
         => Task.FromResult(_isLauncherActivityRunning);
 
-    public async Task StartAsync()
+    public async Task StartAsync(CancellationToken cancellationToken = default)
     {
         if (IsStarted)
         {
@@ -33,7 +33,7 @@ public abstract partial class LauncherProcessTrackingHandler(IProcessWatcher pro
             return;
         }
 
-        await StopAsync();
+        await StopAsync(cancellationToken);
 
         LogStartingHandler(LauncherName);
 
@@ -47,14 +47,16 @@ public abstract partial class LauncherProcessTrackingHandler(IProcessWatcher pro
             if (await IsLauncherActivityAsync(processInfo))
                 _runningProcesses[processInfo.ProcessId] = processInfo;
         }
+
+        await StartCoreAsync(cancellationToken);
     }
 
-    public Task StopAsync()
+    public async Task StopAsync(CancellationToken cancellationToken = default)
     {
         if (!IsStarted)
         {
             LogHandlerAlreadyStopped(LauncherName);
-            return Task.CompletedTask;
+            return;
         }
 
         LogStoppingHandler(LauncherName);
@@ -68,9 +70,11 @@ public abstract partial class LauncherProcessTrackingHandler(IProcessWatcher pro
         _isLauncherActivityRunning = false;
         CancelPendingStop();
 
-        return Task.CompletedTask;
+        await StopCoreAsync(cancellationToken);
     }
 
+    protected virtual Task StartCoreAsync(CancellationToken cancellationToken = default) => Task.CompletedTask;
+    protected virtual Task StopCoreAsync(CancellationToken cancellationToken = default) => Task.CompletedTask;
     protected abstract Task<bool> IsLauncherRunningAsync(CancellationToken cancellationToken = default);
     protected abstract Task<bool> IsLauncherActivityAsync(ProcessInfo processInfo);
     protected abstract Task StopLauncherAsync(CancellationToken cancellationToken = default);

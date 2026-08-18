@@ -36,6 +36,7 @@ public class LauncherProcessTrackingHandlerTests
 
         // Assert
         Assert.True(_launcherHandler.IsStarted);
+        Assert.True(_launcherHandler.CalledStartCoreAsync);
         Assert.Equal("Handler for TestLauncher is already started.", _logger.LatestRecord.Message);
         _processWatcher.Received(1).GetCurrentProcesses(); // Only called as part of starting the handler.
     }
@@ -129,6 +130,7 @@ public class LauncherProcessTrackingHandlerTests
 
         // Assert
         Assert.False(_launcherHandler.IsStarted);
+        Assert.False(_launcherHandler.CalledStopCoreAsync);
         Assert.Equal("Handler for launcher TestLauncher is already stopped.", _logger.LatestRecord.Message);
     }
 
@@ -143,6 +145,7 @@ public class LauncherProcessTrackingHandlerTests
 
         // Assert
         Assert.False(_launcherHandler.IsStarted);
+        Assert.True(_launcherHandler.CalledStopCoreAsync);
         Assert.Equal("Stopping handler for launcher TestLauncher.", _logger.LatestRecord.Message);
     }
 
@@ -155,6 +158,8 @@ public class LauncherProcessTrackingHandlerTests
 
         private bool _isLauncherRunning = true;
 
+        public bool CalledStartCoreAsync { get; private set; }
+        public bool CalledStopCoreAsync { get; private set; }
         public bool CalledStopLauncherAsync { get; private set; }
         public bool CalledOnLauncherActivityStarted { get; private set; }
         public bool CalledOnLauncherActivityEnded { get; private set; }
@@ -162,6 +167,18 @@ public class LauncherProcessTrackingHandlerTests
         public override string LauncherName => "TestLauncher";
 
         public void SetIsLauncherRunning(bool isRunning) { _isLauncherRunning = isRunning; }
+
+        protected override Task StartCoreAsync(CancellationToken cancellationToken = default)
+        {
+            CalledStartCoreAsync = true;
+            return Task.CompletedTask;
+        }
+
+        protected override Task StopCoreAsync(CancellationToken cancellationToken = default)
+        {
+            CalledStopCoreAsync = true;
+            return Task.CompletedTask;
+        }
 
         protected override Task<bool> IsLauncherActivityAsync(ProcessInfo processInfo)
             => Task.FromResult(processInfo.ProcessPath?.StartsWith(FakeActivityInstallPath) == true);

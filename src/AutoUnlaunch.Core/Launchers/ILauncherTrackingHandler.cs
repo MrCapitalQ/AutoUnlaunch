@@ -6,6 +6,6 @@ public interface ILauncherTrackingHandler
     bool IsEnabled { get; }
     bool IsStarted { get; }
 
-    Task StartAsync();
-    Task StopAsync();
+    Task StartAsync(CancellationToken cancellationToken = default);
+    Task StopAsync(CancellationToken cancellationToken = default);
 }
