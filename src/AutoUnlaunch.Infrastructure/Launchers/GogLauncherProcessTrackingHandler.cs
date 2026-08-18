@@ -4,31 +4,26 @@ using MrCapitalQ.AutoUnlaunch.Core;
 using MrCapitalQ.AutoUnlaunch.Core.AppData;
 using MrCapitalQ.AutoUnlaunch.Core.Launchers;
 using System.Diagnostics;
-using System.Management;
 
 namespace MrCapitalQ.AutoUnlaunch.Infrastructure.Launchers;
 
 internal partial class GogLauncherProcessTrackingHandler(IProcessWatcher processWatcher,
     GogSettingsService gogSettingsService,
-    ProcessWindowService processWindowService,
     TimeProvider timeProvider,
+    RegistryWatcherFactory registryWatcherFactory,
+    ProcessWindowService processWindowService,
     ILogger<GogLauncherProcessTrackingHandler> logger)
     : LauncherProcessTrackingHandler(processWatcher, gogSettingsService, timeProvider, logger)
 {
     private const string LauncherProcessName = "GalaxyClient";
     private const string RegistryRootPath = @"SOFTWARE\GOG.com";
-    private const string RegistryWatcherQuery = """
-        SELECT *
-        FROM RegistryTreeChangeEvent
-        WHERE Hive = 'HKEY_LOCAL_MACHINE'
-        AND RootPath = 'SOFTWARE\\WOW6432Node\\GOG.com'
-        """;
+
+    private static readonly RegistryView s_registryView = RegistryView.Registry32;
 
     private readonly GogSettingsService _gogSettingsService = gogSettingsService;
+    private readonly RegistryWatcher _registryWatcher = registryWatcherFactory.Create(@$"{RegistryRootPath}\Games", s_registryView);
     private readonly ProcessWindowService _processWindowService = processWindowService;
     private readonly ILogger<GogLauncherProcessTrackingHandler> _logger = logger;
-    // TODO: Move registry watcher logic to shareable service. Also, maybe use win32 instead of management?
-    private readonly ManagementEventWatcher _registryTreeWatcher = new(new ManagementScope(@"root\default"), new EventQuery(RegistryWatcherQuery));
     private readonly SemaphoreSlim _lock = new(1);
     private readonly Dictionary<long, string> _installPaths = [];
 
@@ -40,9 +35,9 @@ internal partial class GogLauncherProcessTrackingHandler(IProcessWatcher process
 
         try
         {
-            _registryTreeWatcher.EventArrived -= RegistryTreeWatcher_EventArrived;
-            _registryTreeWatcher.EventArrived += RegistryTreeWatcher_EventArrived;
-            _registryTreeWatcher.Start();
+            _registryWatcher.Changed -= RegistryWatcher_Changed;
+            _registryWatcher.Changed += RegistryWatcher_Changed;
+            _registryWatcher.Start();
 
             UpdateInstallPaths();
         }
@@ -54,8 +49,8 @@ internal partial class GogLauncherProcessTrackingHandler(IProcessWatcher process
 
     protected override Task StopCoreAsync(CancellationToken cancellationToken = default)
     {
-        _registryTreeWatcher.EventArrived -= RegistryTreeWatcher_EventArrived;
-        _registryTreeWatcher.Stop();
+        _registryWatcher.Changed -= RegistryWatcher_Changed;
+        _registryWatcher.Stop();
 
         return Task.CompletedTask;
     }
@@ -128,7 +123,7 @@ internal partial class GogLauncherProcessTrackingHandler(IProcessWatcher process
 
         _installPaths.Clear();
 
-        using var baseKey = RegistryKey.OpenBaseKey(RegistryHive.LocalMachine, RegistryView.Registry32);
+        using var baseKey = RegistryKey.OpenBaseKey(RegistryHive.LocalMachine, s_registryView);
         using var gamesSubKey = baseKey.OpenSubKey($@"{RegistryRootPath}\Games");
         if (gamesSubKey is null)
         {
@@ -167,7 +162,7 @@ internal partial class GogLauncherProcessTrackingHandler(IProcessWatcher process
 
     private async Task RequestLauncherShutdown(CancellationToken cancellationToken)
     {
-        using var baseKey = RegistryKey.OpenBaseKey(RegistryHive.LocalMachine, RegistryView.Registry32);
+        using var baseKey = RegistryKey.OpenBaseKey(RegistryHive.LocalMachine, s_registryView);
 
         var launcherPath = baseKey.GetValue($@"{RegistryRootPath}\GalaxyClient\paths", "client")?.ToString();
         var launcherExecutable = baseKey.GetValue($@"{RegistryRootPath}\GalaxyClient", "clientExecutable")?.ToString();
@@ -197,7 +192,7 @@ internal partial class GogLauncherProcessTrackingHandler(IProcessWatcher process
         }
     }
 
-    private async void RegistryTreeWatcher_EventArrived(object sender, EventArrivedEventArgs e)
+    private async void RegistryWatcher_Changed(object? sender, EventArgs e)
     {
         await _lock.WaitAsync();
 

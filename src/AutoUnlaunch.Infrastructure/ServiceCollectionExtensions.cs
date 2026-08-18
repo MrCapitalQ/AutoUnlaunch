@@ -35,6 +35,12 @@ public static class ServiceCollectionExtensions
         return services;
     }
 
+    public static IServiceCollection AddRegistryWatcher(this IServiceCollection services)
+    {
+        services.TryAddSingleton<RegistryWatcherFactory>();
+        return services;
+    }
+
     public static IServiceCollection AddSteam(this IServiceCollection services)
     {
         services.AddSingleton<ILauncherPollingHandler, SteamLauncherPollingHandler>();
@@ -55,6 +61,7 @@ public static class ServiceCollectionExtensions
     public static IServiceCollection AddGog(this IServiceCollection services)
     {
         services.AddProcessWatcher();
+        services.AddRegistryWatcher();
         services.AddSingleton<ILauncherTrackingHandler, GogLauncherProcessTrackingHandler>();
         services.TryAddTransient<GogSettingsService>();
         services.TryAddTransient<ProcessWindowService>();

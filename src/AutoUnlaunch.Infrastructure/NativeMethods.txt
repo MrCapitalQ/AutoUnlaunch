@@ -1,0 +1,5 @@
+HKEY_LOCAL_MACHINE
+
+RegCloseKey
+RegNotifyChangeKeyValue
+RegOpenKeyEx
