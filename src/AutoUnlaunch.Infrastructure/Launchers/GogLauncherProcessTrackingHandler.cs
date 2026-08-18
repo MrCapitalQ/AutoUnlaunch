@@ -16,7 +16,7 @@ internal partial class GogLauncherProcessTrackingHandler(IProcessWatcher process
     : LauncherProcessTrackingHandler(processWatcher, gogSettingsService, timeProvider, logger)
 {
     private const string LauncherProcessName = "GalaxyClient";
-    private const string RegistryRootPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\WOW6432Node\GOG.com\GalaxyClient";
+    private const string RegistryRootPath = @"SOFTWARE\GOG.com";
     private const string RegistryWatcherQuery = """
         SELECT *
         FROM RegistryTreeChangeEvent
@@ -27,6 +27,7 @@ internal partial class GogLauncherProcessTrackingHandler(IProcessWatcher process
     private readonly GogSettingsService _gogSettingsService = gogSettingsService;
     private readonly ProcessWindowService _processWindowService = processWindowService;
     private readonly ILogger<GogLauncherProcessTrackingHandler> _logger = logger;
+    // TODO: Move registry watcher logic to shareable service. Also, maybe use win32 instead of management?
     private readonly ManagementEventWatcher _registryTreeWatcher = new(new ManagementScope(@"root\default"), new EventQuery(RegistryWatcherQuery));
     private readonly SemaphoreSlim _lock = new(1);
     private readonly Dictionary<long, string> _installPaths = [];
@@ -127,7 +128,8 @@ internal partial class GogLauncherProcessTrackingHandler(IProcessWatcher process
 
         _installPaths.Clear();
 
-        using var gamesSubKey = Registry.LocalMachine.OpenSubKey($@"SOFTWARE\WOW6432Node\GOG.com\Games");
+        using var baseKey = RegistryKey.OpenBaseKey(RegistryHive.LocalMachine, RegistryView.Registry32);
+        using var gamesSubKey = baseKey.OpenSubKey($@"{RegistryRootPath}\Games");
         if (gamesSubKey is null)
         {
             _logger.LogWarning("Could not open GOG games registry sub key.");
@@ -165,8 +167,10 @@ internal partial class GogLauncherProcessTrackingHandler(IProcessWatcher process
 
     private async Task RequestLauncherShutdown(CancellationToken cancellationToken)
     {
-        var launcherPath = Registry.GetValue($@"{RegistryRootPath}\paths", "client", null)?.ToString();
-        var launcherExecutable = Registry.GetValue(RegistryRootPath, "clientExecutable", null)?.ToString();
+        using var baseKey = RegistryKey.OpenBaseKey(RegistryHive.LocalMachine, RegistryView.Registry32);
+
+        var launcherPath = baseKey.GetValue($@"{RegistryRootPath}\GalaxyClient\paths", "client")?.ToString();
+        var launcherExecutable = baseKey.GetValue($@"{RegistryRootPath}\GalaxyClient", "clientExecutable")?.ToString();
         if (launcherPath is null || launcherExecutable == null)
         {
             _logger.LogError("Could not determine {LauncherName} executable path.", LauncherName);
