@@ -15,20 +15,19 @@ public abstract partial class LauncherWatchingHandler(IProcessWatcher processWat
     private readonly ILogger _logger = logger;
     private readonly IDictionary<uint, ProcessInfo> _runningProcesses = new ConcurrentDictionary<uint, ProcessInfo>();
 
-    private bool _isStarted;
     private bool _isLauncherActivityRunning;
     private CancellationTokenSource? _delayedStopCts;
 
     public abstract string LauncherName { get; }
-
     public bool IsEnabled => _launcherSettingsService.GetIsLauncherEnabled();
+    public bool IsStarted { get; private set; }
 
     protected virtual Task<bool> IsLauncherActivityRunningAsync(CancellationToken cancellationToken = default)
         => Task.FromResult(_isLauncherActivityRunning);
 
     public async Task StartAsync()
     {
-        if (_isStarted)
+        if (IsStarted)
         {
             LogHandlerAlreadyStarted(LauncherName);
             return;
@@ -38,7 +37,7 @@ public abstract partial class LauncherWatchingHandler(IProcessWatcher processWat
 
         LogStartingHandler(LauncherName);
 
-        _isStarted = true;
+        IsStarted = true;
 
         _processWatcher.ProcessStarted += ProcessWatcher_ProcessStartedAsync;
         _processWatcher.ProcessStopped += ProcessWatcher_ProcessStopped;
@@ -52,7 +51,7 @@ public abstract partial class LauncherWatchingHandler(IProcessWatcher processWat
 
     public Task StopAsync()
     {
-        if (!_isStarted)
+        if (!IsStarted)
         {
             LogHandlerAlreadyStopped(LauncherName);
             return Task.CompletedTask;
@@ -60,7 +59,7 @@ public abstract partial class LauncherWatchingHandler(IProcessWatcher processWat
 
         LogStoppingHandler(LauncherName);
 
-        _isStarted = false;
+        IsStarted = false;
 
         _processWatcher.ProcessStarted -= ProcessWatcher_ProcessStartedAsync;
         _processWatcher.ProcessStopped -= ProcessWatcher_ProcessStopped;

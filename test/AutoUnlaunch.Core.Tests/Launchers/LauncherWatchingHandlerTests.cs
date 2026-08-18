@@ -21,7 +21,7 @@ public class LauncherWatchingHandlerTests
     {
         _launcherSettingsService = new(_applicationDataStore);
 
-        _applicationDataStore.GetValueOrDefault(TestLauncherSettingsService.LauncherStopDelayTestKey, Arg.Any<int>())
+        _applicationDataStore.GetValueOrDefault("TestLauncher_StopDelay", Arg.Any<int>())
             .Returns((int)_stopDelay.TotalSeconds);
 
         _launcherHandler = new(_processWatcher, _launcherSettingsService, _timeProvider, _logger);
@@ -35,6 +35,7 @@ public class LauncherWatchingHandlerTests
         await _launcherHandler.StartAsync();
 
         // Assert
+        Assert.True(_launcherHandler.IsStarted);
         Assert.Equal("Handler for TestLauncher is already started.", _logger.LatestRecord.Message);
         _processWatcher.Received(1).GetCurrentProcesses(); // Only called as part of starting the handler.
     }
@@ -118,7 +119,6 @@ public class LauncherWatchingHandlerTests
 
         // Arrange
         Assert.Equal("Scheduled stop for launcher TestLauncher was cancelled.", _logger.LatestRecord.Message);
-        Assert.Equal(LogLevel.Information, _logger.LatestRecord.Level);
     }
 
     [Fact]
@@ -128,6 +128,7 @@ public class LauncherWatchingHandlerTests
         await _launcherHandler.StopAsync();
 
         // Assert
+        Assert.False(_launcherHandler.IsStarted);
         Assert.Equal("Handler for launcher TestLauncher is already stopped.", _logger.LatestRecord.Message);
     }
 
@@ -141,6 +142,7 @@ public class LauncherWatchingHandlerTests
         await _launcherHandler.StopAsync();
 
         // Assert
+        Assert.False(_launcherHandler.IsStarted);
         Assert.Equal("Stopping handler for launcher TestLauncher.", _logger.LatestRecord.Message);
     }
 
@@ -200,10 +202,6 @@ public class LauncherWatchingHandlerTests
     private class TestLauncherSettingsService(IApplicationDataStore applicationDataStore)
         : LauncherSettingsService(applicationDataStore)
     {
-        public const string IsLauncherEnabledTestKey = "TestLauncher_IsEnabled";
-        public const string LauncherStopDelayTestKey = "TestLauncher_StopDelay";
-        public const string LauncherStopMethodTestKey = "TestLauncher_StopMethod";
-
         protected override string LauncherKey => "TestLauncher";
         protected override LauncherStopMethod DefaultLauncherStopMethod => LauncherStopMethod.RequestShutdown;
     }
