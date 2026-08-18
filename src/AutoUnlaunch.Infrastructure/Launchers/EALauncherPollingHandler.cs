@@ -5,11 +5,11 @@ using MrCapitalQ.AutoUnlaunch.Launchers.Handlers;
 
 namespace MrCapitalQ.AutoUnlaunch.Infrastructure.Launchers;
 
-internal class EALauncherHandler(TimeProvider timeProvider,
+internal class EALauncherPollingHandler(TimeProvider timeProvider,
     EASettingsService eaSettingsService,
     LauncherChildProcessChecker childProcessChecker,
-    ILogger<EALauncherHandler> logger)
-    : LauncherHandler(eaSettingsService, timeProvider, logger)
+    ILogger<EALauncherPollingHandler> logger)
+    : LauncherPollingHandler(eaSettingsService, timeProvider, logger)
 {
     private const string LauncherProcessName = "EADesktop";
     private static readonly IReadOnlySet<string> s_excludedProcessNames = new HashSet<string>

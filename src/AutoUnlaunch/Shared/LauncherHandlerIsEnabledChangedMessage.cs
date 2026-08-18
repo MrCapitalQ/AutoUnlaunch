@@ -1,0 +1,3 @@
+﻿namespace MrCapitalQ.AutoUnlaunch.Shared;
+
+internal record LauncherHandlerIsEnabledChangedMessage;

@@ -28,7 +28,7 @@ internal partial class GogSettingsViewModel : LauncherSettingsViewModel, IGogSet
     public GogSettingsViewModel(GogSettingsService settingsService,
         IMessenger messenger,
         IProtocolLauncher protocolLauncher)
-        : base(settingsService)
+        : base(settingsService, messenger)
     {
         _settingsService = settingsService;
         _messenger = messenger;

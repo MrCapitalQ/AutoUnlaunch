@@ -6,16 +6,16 @@ using MrCapitalQ.AutoUnlaunch.Core.Launchers;
 
 namespace MrCapitalQ.AutoUnlaunch.Core.Tests.Launchers;
 
-public class LauncherHandlerTests
+public class LauncherPollingHandlerTests
 {
     private readonly IApplicationDataStore _applicationDataStore;
     private readonly TestLauncherSettingsService _launcherSettingsService;
     private readonly FakeTimeProvider _timeProvider;
     private readonly FakeLogger _logger;
 
-    private readonly TestLauncherHandler _launcherHandler;
+    private readonly TestLauncherPollingHandler _launcherHandler;
 
-    public LauncherHandlerTests()
+    public LauncherPollingHandlerTests()
     {
         _applicationDataStore = Substitute.For<IApplicationDataStore>();
         _launcherSettingsService = new(_applicationDataStore);
@@ -214,9 +214,9 @@ public class LauncherHandlerTests
         Assert.False(_launcherHandler.CalledStopLauncherAsync);
     }
 
-    private class TestLauncherHandler : LauncherHandler
+    private class TestLauncherPollingHandler : LauncherPollingHandler
     {
-        public TestLauncherHandler(LauncherSettingsService launcherSettingsService,
+        public TestLauncherPollingHandler(LauncherSettingsService launcherSettingsService,
             TimeProvider timeProvider,
             ILogger logger)
             : base(launcherSettingsService, timeProvider, logger)

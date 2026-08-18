@@ -33,7 +33,8 @@ internal class Program
         builder.Logging.AddFile();
 
         builder.Services.AddHostedService<WindowsAppHostedService<App>>();
-        builder.Services.AddHostedService<LauncherBackgroundService>();
+        builder.Services.AddHostedService<LauncherPollingBackgroundService>();
+        builder.Services.AddHostedService<LauncherTrackingBackgroundService>();
         builder.Services.AddHostedService<SteamShortcutsBackgroundService>();
         builder.Services.AddSingleton(TimeProvider.System);
 

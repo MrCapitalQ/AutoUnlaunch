@@ -5,12 +5,12 @@ using MrCapitalQ.AutoUnlaunch.Core.Launchers;
 
 namespace MrCapitalQ.AutoUnlaunch.Infrastructure.Launchers;
 
-internal class EpicLauncherHandler(TimeProvider timeProvider,
+internal class EpicLauncherPollingHandler(TimeProvider timeProvider,
     EpicSettingsService epicSettingsService,
     LauncherChildProcessChecker childProcessChecker,
     IProtocolLauncher protocolLauncher,
-    ILogger<EpicLauncherHandler> logger)
-    : LauncherHandler(epicSettingsService, timeProvider, logger)
+    ILogger<EpicLauncherPollingHandler> logger)
+    : LauncherPollingHandler(epicSettingsService, timeProvider, logger)
 {
     private const string LauncherProcessName = "EpicGamesLauncher";
     private const string UserHelperProcessName = "EpicOnlineServicesUserHelper";

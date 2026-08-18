@@ -28,7 +28,7 @@ internal partial class SteamSettingsViewModel : LauncherSettingsViewModel, IStea
     public SteamSettingsViewModel(SteamSettingsService settingsService,
         IMessenger messenger,
         IProtocolLauncher protocolLauncher)
-        : base(settingsService)
+        : base(settingsService, messenger)
     {
         _settingsService = settingsService;
         _messenger = messenger;

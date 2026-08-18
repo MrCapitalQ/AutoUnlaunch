@@ -1,4 +1,5 @@
 ﻿using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Messaging;
 using MrCapitalQ.AutoUnlaunch.Core.AppData;
 using MrCapitalQ.AutoUnlaunch.Shared;
 
@@ -21,11 +22,12 @@ internal abstract partial class LauncherSettingsViewModel : ObservableObject
         { LauncherStopMethod.RequestShutdown, "Request shutdown" }
     };
     private readonly LauncherSettingsService _settingsService;
+    private readonly IMessenger _messenger;
 
-    protected LauncherSettingsViewModel(LauncherSettingsService settingsService)
+    protected LauncherSettingsViewModel(LauncherSettingsService settingsService, IMessenger messenger)
     {
         _settingsService = settingsService;
-
+        _messenger = messenger;
         IsEnabled = _settingsService.GetIsLauncherEnabled();
 
         var selectedDelay = _settingsService.GetLauncherStopDelay();
@@ -48,7 +50,11 @@ internal abstract partial class LauncherSettingsViewModel : ObservableObject
 
     public abstract IEnumerable<ComboBoxOption<LauncherStopMethod>> StopMethodOptions { get; }
 
-    partial void OnIsEnabledChanged(bool value) => _settingsService.SetIsLauncherEnabled(value);
+    partial void OnIsEnabledChanged(bool value)
+    {
+        _settingsService.SetIsLauncherEnabled(value);
+        _messenger.Send(new LauncherHandlerIsEnabledChangedMessage());
+    }
 
     partial void OnSelectedDelayChanged(ComboBoxOption<int> value)
         => _settingsService.SetLauncherStopDelay(value.Value);

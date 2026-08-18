@@ -6,22 +6,18 @@ using System.Diagnostics.CodeAnalysis;
 namespace MrCapitalQ.AutoUnlaunch.Hosts;
 
 [ExcludeFromCodeCoverage]
-internal class LauncherBackgroundService : BackgroundService
+internal partial class LauncherPollingBackgroundService(IEnumerable<ILauncherPollingHandler> handlers,
+    ILogger<LauncherPollingBackgroundService> logger) : BackgroundService
 {
     private const int LauncherCheckInterval = 1;
 
-    private readonly ISet<ILauncherHandler> _handlers;
-    private readonly ILogger<LauncherBackgroundService> _logger;
-
-    public LauncherBackgroundService(IEnumerable<ILauncherHandler> handlers, ILogger<LauncherBackgroundService> logger)
-    {
-        _handlers = handlers.ToHashSet();
-        _logger = logger;
-    }
+    private readonly ISet<ILauncherPollingHandler> _handlers = handlers.ToHashSet();
+    private readonly ILogger<LauncherPollingBackgroundService> _logger = logger;
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        _logger.LogInformation("Background launcher service checking for activity every {LauncherCheckInterval} second(s).", LauncherCheckInterval);
+        _logger.LogInformation("Background launcher service checking for activity every {LauncherCheckInterval} second(s).",
+            LauncherCheckInterval);
 
         while (!stoppingToken.IsCancellationRequested)
         {

@@ -29,9 +29,15 @@ public static class ServiceCollectionExtensions
         return services;
     }
 
+    public static IServiceCollection AddProcessWatcher(this IServiceCollection services)
+    {
+        services.TryAddSingleton<IProcessWatcher, ProcessWatcher>();
+        return services;
+    }
+
     public static IServiceCollection AddSteam(this IServiceCollection services)
     {
-        services.AddSingleton<ILauncherHandler, SteamLauncherHandler>();
+        services.AddSingleton<ILauncherPollingHandler, SteamLauncherPollingHandler>();
         services.TryAddTransient<SteamSettingsService>();
         services.TryAddTransient<ProcessWindowService>();
         services.AddProtocolLauncher();
@@ -40,7 +46,7 @@ public static class ServiceCollectionExtensions
 
     public static IServiceCollection AddEA(this IServiceCollection services)
     {
-        services.AddSingleton<ILauncherHandler, EALauncherHandler>();
+        services.AddSingleton<ILauncherPollingHandler, EALauncherPollingHandler>();
         services.TryAddTransient<EASettingsService>();
         services.TryAddTransient<LauncherChildProcessChecker>();
         return services;
@@ -48,16 +54,16 @@ public static class ServiceCollectionExtensions
 
     public static IServiceCollection AddGog(this IServiceCollection services)
     {
-        services.AddSingleton<ILauncherHandler, GogLauncherHandler>();
+        services.AddProcessWatcher();
+        services.AddSingleton<ILauncherTrackingHandler, GogLauncherProcessTrackingHandler>();
         services.TryAddTransient<GogSettingsService>();
-        services.TryAddTransient<LauncherChildProcessChecker>();
         services.TryAddTransient<ProcessWindowService>();
         return services;
     }
 
     public static IServiceCollection AddEpic(this IServiceCollection services)
     {
-        services.AddSingleton<ILauncherHandler, EpicLauncherHandler>();
+        services.AddSingleton<ILauncherPollingHandler, EpicLauncherPollingHandler>();
         services.TryAddTransient<EpicSettingsService>();
         services.TryAddTransient<LauncherChildProcessChecker>();
         services.AddProtocolLauncher();
