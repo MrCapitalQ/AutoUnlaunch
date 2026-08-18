@@ -6,7 +6,7 @@ using MrCapitalQ.AutoUnlaunch.Core.Launchers;
 
 namespace MrCapitalQ.AutoUnlaunch.Core.Tests.Launchers;
 
-public class LauncherWatchingHandlerTests
+public class LauncherProcessTrackingHandlerTests
 {
     private readonly TestProcessWatcher _processWatcher = Substitute.For<TestProcessWatcher>();
     private readonly IApplicationDataStore _applicationDataStore = Substitute.For<IApplicationDataStore>();
@@ -15,9 +15,9 @@ public class LauncherWatchingHandlerTests
     private readonly FakeLogger _logger = new();
     private readonly TimeSpan _stopDelay = TimeSpan.FromSeconds(10);
 
-    private readonly TestLauncherWatchingHandler _launcherHandler;
+    private readonly TestLauncherProcessTrackingHandler _launcherHandler;
 
-    public LauncherWatchingHandlerTests()
+    public LauncherProcessTrackingHandlerTests()
     {
         _launcherSettingsService = new(_applicationDataStore);
 
@@ -44,7 +44,7 @@ public class LauncherWatchingHandlerTests
     public async Task StartAsync_ActivityProcessStarted_InvokesOnLauncherActivityStarted()
     {
         // Arrange
-        var activityProcess = new ProcessInfo(1, "ActivityProcess", TestLauncherWatchingHandler.FakeActivityInstallPath);
+        var activityProcess = new ProcessInfo(1, "ActivityProcess", TestLauncherProcessTrackingHandler.FakeActivityInstallPath);
 
         // Act
         await _launcherHandler.StartAsync();
@@ -59,7 +59,7 @@ public class LauncherWatchingHandlerTests
     public async Task StartAsync_ActivityProcessStopped_SchedulesLauncherStop()
     {
         // Arrange
-        var activityProcess = new ProcessInfo(1, "ActivityProcess", TestLauncherWatchingHandler.FakeActivityInstallPath);
+        var activityProcess = new ProcessInfo(1, "ActivityProcess", TestLauncherProcessTrackingHandler.FakeActivityInstallPath);
 
         // Act
         await _launcherHandler.StartAsync();
@@ -74,7 +74,7 @@ public class LauncherWatchingHandlerTests
     public async Task StartAsync_ActivityProcessStoppedAndStopDelayElapses_StopsLauncher()
     {
         // Arrange
-        var activityProcess = new ProcessInfo(1, "ActivityProcess", TestLauncherWatchingHandler.FakeActivityInstallPath);
+        var activityProcess = new ProcessInfo(1, "ActivityProcess", TestLauncherProcessTrackingHandler.FakeActivityInstallPath);
 
         // Act
         await _launcherHandler.StartAsync();
@@ -90,7 +90,7 @@ public class LauncherWatchingHandlerTests
     [Fact]
     public async Task StartAsync_ActivityProcessStopped_LogsNotRunning()
     {
-        var activityProcess = new ProcessInfo(1, "ActivityProcess", TestLauncherWatchingHandler.FakeActivityInstallPath);
+        var activityProcess = new ProcessInfo(1, "ActivityProcess", TestLauncherProcessTrackingHandler.FakeActivityInstallPath);
 
         _launcherHandler.SetIsLauncherRunning(false);
 
@@ -107,7 +107,7 @@ public class LauncherWatchingHandlerTests
     public async Task StartAsync_ActivityProcessRestartsBeforeStoppingLauncher_CancelsLauncherStop()
     {
         // Arrange
-        var activityProcess = new ProcessInfo(1, "ActivityProcess", TestLauncherWatchingHandler.FakeActivityInstallPath);
+        var activityProcess = new ProcessInfo(1, "ActivityProcess", TestLauncherProcessTrackingHandler.FakeActivityInstallPath);
 
         // Act
         await _launcherHandler.StartAsync();
@@ -146,10 +146,10 @@ public class LauncherWatchingHandlerTests
         Assert.Equal("Stopping handler for launcher TestLauncher.", _logger.LatestRecord.Message);
     }
 
-    private class TestLauncherWatchingHandler(IProcessWatcher processWatcher,
+    private class TestLauncherProcessTrackingHandler(IProcessWatcher processWatcher,
         LauncherSettingsService launcherSettingsService,
         TimeProvider timeProvider,
-        ILogger logger) : LauncherWatchingHandler(processWatcher, launcherSettingsService, timeProvider, logger)
+        ILogger logger) : LauncherProcessTrackingHandler(processWatcher, launcherSettingsService, timeProvider, logger)
     {
         public const string FakeActivityInstallPath = "test/";
 

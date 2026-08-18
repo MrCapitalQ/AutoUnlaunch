@@ -1,6 +1,6 @@
 ﻿namespace MrCapitalQ.AutoUnlaunch.Core.Launchers;
 
-public interface ILauncherWatchingHandler
+public interface ILauncherTrackingHandler
 {
     string LauncherName { get; }
     bool IsEnabled { get; }

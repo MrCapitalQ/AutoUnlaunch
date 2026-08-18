@@ -8,22 +8,22 @@ using System.Management;
 
 namespace MrCapitalQ.AutoUnlaunch.Infrastructure.Launchers;
 
-internal partial class GogLauncherWatchingHandler : LauncherWatchingHandler
+internal partial class GogLauncherProcessTrackingHandler : LauncherProcessTrackingHandler
 {
     private const string LauncherProcessName = "GalaxyClient";
     private const string RegistryRootPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\WOW6432Node\GOG.com\GalaxyClient";
 
     private readonly GogSettingsService _gogSettingsService;
     private readonly ProcessWindowService _processWindowService;
-    private readonly ILogger<GogLauncherWatchingHandler> _logger;
+    private readonly ILogger<GogLauncherProcessTrackingHandler> _logger;
     private readonly SemaphoreSlim _lock = new(0, 1);
     private readonly Dictionary<long, string> _installPaths = [];
 
-    public GogLauncherWatchingHandler(IProcessWatcher processWatcher,
+    public GogLauncherProcessTrackingHandler(IProcessWatcher processWatcher,
         GogSettingsService gogSettingsService,
         ProcessWindowService processWindowService,
         TimeProvider timeProvider,
-        ILogger<GogLauncherWatchingHandler> logger) : base(processWatcher, gogSettingsService, timeProvider, logger)
+        ILogger<GogLauncherProcessTrackingHandler> logger) : base(processWatcher, gogSettingsService, timeProvider, logger)
     {
         _gogSettingsService = gogSettingsService;
         _processWindowService = processWindowService;

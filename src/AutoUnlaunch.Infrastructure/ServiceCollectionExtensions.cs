@@ -48,7 +48,7 @@ public static class ServiceCollectionExtensions
 
     public static IServiceCollection AddGog(this IServiceCollection services)
     {
-        services.AddSingleton<ILauncherWatchingHandler, GogLauncherWatchingHandler>();
+        services.AddSingleton<ILauncherTrackingHandler, GogLauncherProcessTrackingHandler>();
         services.TryAddTransient<GogSettingsService>();
         services.TryAddTransient<LauncherChildProcessChecker>();
         services.TryAddTransient<ProcessWindowService>();

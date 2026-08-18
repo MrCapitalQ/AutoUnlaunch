@@ -34,7 +34,7 @@ internal class Program
 
         builder.Services.AddHostedService<WindowsAppHostedService<App>>();
         builder.Services.AddHostedService<LauncherPollingBackgroundService>();
-        builder.Services.AddHostedService<LauncherWatchingBackgroundService>();
+        builder.Services.AddHostedService<LauncherTrackingBackgroundService>();
         builder.Services.AddHostedService<SteamShortcutsBackgroundService>();
         builder.Services.AddSingleton(TimeProvider.System);
 

@@ -8,13 +8,13 @@ using System.Diagnostics.CodeAnalysis;
 namespace MrCapitalQ.AutoUnlaunch.Hosts;
 
 [ExcludeFromCodeCoverage]
-internal partial class LauncherWatchingBackgroundService(IEnumerable<ILauncherWatchingHandler> handlers,
+internal partial class LauncherTrackingBackgroundService(IEnumerable<ILauncherTrackingHandler> handlers,
     IMessenger messenger,
-    ILogger<LauncherWatchingBackgroundService> logger) : BackgroundService
+    ILogger<LauncherTrackingBackgroundService> logger) : BackgroundService
 {
-    private readonly ISet<ILauncherWatchingHandler> _handlers = handlers.ToHashSet();
+    private readonly ISet<ILauncherTrackingHandler> _handlers = handlers.ToHashSet();
     private readonly IMessenger _messenger = messenger;
-    private readonly ILogger<LauncherWatchingBackgroundService> _logger = logger;
+    private readonly ILogger<LauncherTrackingBackgroundService> _logger = logger;
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {

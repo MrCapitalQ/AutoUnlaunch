@@ -4,10 +4,10 @@ using System.Collections.Concurrent;
 
 namespace MrCapitalQ.AutoUnlaunch.Core.Launchers;
 
-public abstract partial class LauncherWatchingHandler(IProcessWatcher processWatcher,
+public abstract partial class LauncherProcessTrackingHandler(IProcessWatcher processWatcher,
     LauncherSettingsService launcherSettingsService,
     TimeProvider timeProvider,
-    ILogger logger) : ILauncherWatchingHandler
+    ILogger logger) : ILauncherTrackingHandler
 {
     private readonly IProcessWatcher _processWatcher = processWatcher;
     private readonly LauncherSettingsService _launcherSettingsService = launcherSettingsService;
