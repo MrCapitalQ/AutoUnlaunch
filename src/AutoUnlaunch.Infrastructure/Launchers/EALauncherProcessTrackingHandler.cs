@@ -36,37 +36,37 @@ internal partial class EALauncherProcessTrackingHandler(IProcessWatcher processW
 
     protected override async Task StartCoreAsync(CancellationToken cancellationToken = default)
     {
+        _registry32Watcher.Changed -= RegistryWatcher_Changed;
+        _registry32Watcher.Changed += RegistryWatcher_Changed;
+        _registry32Watcher.Errored -= RegistryWatcher_Errored;
+        _registry32Watcher.Errored += RegistryWatcher_Errored;
+        _registry64Watcher.Changed -= RegistryWatcher_Changed;
+        _registry64Watcher.Changed += RegistryWatcher_Changed;
+        _registry64Watcher.Errored -= RegistryWatcher_Errored;
+        _registry64Watcher.Errored += RegistryWatcher_Errored;
+
+        try
+        {
+            _registry32Watcher.Start();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to start 32-bit view registry watcher. EA games list refresh will not function properly until handler is restarted.");
+        }
+
+        try
+        {
+            _registry64Watcher.Start();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to start 64-bit view registry watcher. EA games list refresh will not function properly until handler is restarted.");
+        }
+
         await _lock.WaitAsync(cancellationToken);
 
         try
         {
-            _registry32Watcher.Changed -= RegistryWatcher_Changed;
-            _registry32Watcher.Changed += RegistryWatcher_Changed;
-            _registry32Watcher.Errored -= RegistryWatcher_Errored;
-            _registry32Watcher.Errored += RegistryWatcher_Errored;
-            _registry64Watcher.Changed -= RegistryWatcher_Changed;
-            _registry64Watcher.Changed += RegistryWatcher_Changed;
-            _registry64Watcher.Errored -= RegistryWatcher_Errored;
-            _registry64Watcher.Errored += RegistryWatcher_Errored;
-
-            try
-            {
-                _registry32Watcher.Start();
-            }
-            catch (Exception ex)
-            {
-                _logger.LogWarning(ex, "Failed to start 32-bit view registry watcher. EA games list refresh will not function properly until handler is restarted.");
-            }
-
-            try
-            {
-                _registry64Watcher.Start();
-            }
-            catch (Exception ex)
-            {
-                _logger.LogWarning(ex, "Failed to start 64-bit view registry watcher. EA games list refresh will not function properly until handler is restarted.");
-            }
-
             UpdateInstallPaths();
         }
         finally

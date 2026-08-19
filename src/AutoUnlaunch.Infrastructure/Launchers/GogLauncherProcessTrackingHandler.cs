@@ -34,24 +34,24 @@ internal partial class GogLauncherProcessTrackingHandler(IProcessWatcher process
 
     protected override async Task StartCoreAsync(CancellationToken cancellationToken = default)
     {
+        _registryWatcher.Changed -= RegistryWatcher_Changed;
+        _registryWatcher.Changed += RegistryWatcher_Changed;
+        _registryWatcher.Errored -= RegistryWatcher_Errored;
+        _registryWatcher.Errored += RegistryWatcher_Errored;
+
+        try
+        {
+            _registryWatcher.Start();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to start registry watcher. GOG games list will not be refreshed until handler is restarted.");
+        }
+
         await _lock.WaitAsync(cancellationToken);
 
         try
         {
-            _registryWatcher.Changed -= RegistryWatcher_Changed;
-            _registryWatcher.Changed += RegistryWatcher_Changed;
-            _registryWatcher.Errored -= RegistryWatcher_Errored;
-            _registryWatcher.Errored += RegistryWatcher_Errored;
-
-            try
-            {
-                _registryWatcher.Start();
-            }
-            catch (Exception ex)
-            {
-                _logger.LogWarning(ex, "Failed to start registry watcher. GOG games list will not be refreshed until handler is restarted.");
-            }
-
             UpdateInstallPaths();
         }
         finally
@@ -178,8 +178,12 @@ internal partial class GogLauncherProcessTrackingHandler(IProcessWatcher process
     {
         using var baseKey = RegistryKey.OpenBaseKey(s_registryHive, s_registryView);
 
-        var launcherPath = baseKey.GetValue($@"{RegistryRootPath}\GalaxyClient\paths", "client")?.ToString();
-        var launcherExecutable = baseKey.GetValue($@"{RegistryRootPath}\GalaxyClient", "clientExecutable")?.ToString();
+        using var pathsKey = baseKey.OpenSubKey($@"{RegistryRootPath}\GalaxyClient\paths");
+        var launcherPath = pathsKey?.GetValue("client")?.ToString();
+
+        using var clientKey = baseKey.OpenSubKey($@"{RegistryRootPath}\GalaxyClient");
+        var launcherExecutable = clientKey?.GetValue("clientExecutable")?.ToString();
+
         if (launcherPath is null || launcherExecutable == null)
         {
             _logger.LogError("Could not determine {LauncherName} executable path.", LauncherName);
