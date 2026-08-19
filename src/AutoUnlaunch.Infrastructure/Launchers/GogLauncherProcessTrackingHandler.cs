@@ -40,7 +40,17 @@ internal partial class GogLauncherProcessTrackingHandler(IProcessWatcher process
         {
             _registryWatcher.Changed -= RegistryWatcher_Changed;
             _registryWatcher.Changed += RegistryWatcher_Changed;
-            _registryWatcher.Start();
+            _registryWatcher.Errored -= RegistryWatcher_Errored;
+            _registryWatcher.Errored += RegistryWatcher_Errored;
+
+            try
+            {
+                _registryWatcher.Start();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to start registry watcher. GOG games list will not be refreshed until handler is restarted.");
+            }
 
             UpdateInstallPaths();
         }
@@ -53,6 +63,7 @@ internal partial class GogLauncherProcessTrackingHandler(IProcessWatcher process
     protected override Task StopCoreAsync(CancellationToken cancellationToken = default)
     {
         _registryWatcher.Changed -= RegistryWatcher_Changed;
+        _registryWatcher.Errored -= RegistryWatcher_Errored;
         _registryWatcher.Stop();
 
         return Task.CompletedTask;
@@ -211,6 +222,11 @@ internal partial class GogLauncherProcessTrackingHandler(IProcessWatcher process
         {
             _lock.Release();
         }
+    }
+
+    private void RegistryWatcher_Errored(object? sender, EventArgs e)
+    {
+        _logger.LogWarning("Registry watcher encountered an unexpected error and has stopped. GOG games list will not be refreshed until handler is restarted.");
     }
 
     public async ValueTask DisposeAsync()

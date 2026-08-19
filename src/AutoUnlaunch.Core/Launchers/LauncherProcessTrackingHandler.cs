@@ -42,13 +42,13 @@ public abstract partial class LauncherProcessTrackingHandler(IProcessWatcher pro
         _processWatcher.ProcessStarted += ProcessWatcher_ProcessStartedAsync;
         _processWatcher.ProcessStopped += ProcessWatcher_ProcessStopped;
 
+        await StartCoreAsync(cancellationToken);
+
         foreach (var processInfo in _processWatcher.GetCurrentProcesses())
         {
             if (await IsLauncherActivityAsync(processInfo))
                 _runningProcesses[processInfo.ProcessId] = processInfo;
         }
-
-        await StartCoreAsync(cancellationToken);
     }
 
     public async Task StopAsync(CancellationToken cancellationToken = default)
@@ -66,11 +66,11 @@ public abstract partial class LauncherProcessTrackingHandler(IProcessWatcher pro
         _processWatcher.ProcessStarted -= ProcessWatcher_ProcessStartedAsync;
         _processWatcher.ProcessStopped -= ProcessWatcher_ProcessStopped;
 
+        await StopCoreAsync(cancellationToken);
+
         _runningProcesses.Clear();
         _isLauncherActivityRunning = false;
         CancelPendingStop();
-
-        await StopCoreAsync(cancellationToken);
     }
 
     protected virtual Task StartCoreAsync(CancellationToken cancellationToken = default) => Task.CompletedTask;

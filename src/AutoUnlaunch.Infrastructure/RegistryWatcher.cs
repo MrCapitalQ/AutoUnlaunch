@@ -13,6 +13,7 @@ internal partial class RegistryWatcher(RegistryHive hive,
     ILogger<RegistryWatcher> logger) : IDisposable
 {
     public event EventHandler<EventArgs>? Changed;
+    public event EventHandler<EventArgs>? Errored;
 
     private readonly RegistryHive _hive = hive;
     private readonly string _path = path;
@@ -22,7 +23,11 @@ internal partial class RegistryWatcher(RegistryHive hive,
 
     public bool IsStarted => _currentlyWatched.HasValue;
 
-    public void Start()
+    public void Start() => StartCore();
+
+    public void Stop() => StopCore();
+
+    private void StartCore(bool shouldLogInitialMessage = true)
     {
         if (_currentlyWatched.HasValue)
         {
@@ -30,7 +35,8 @@ internal partial class RegistryWatcher(RegistryHive hive,
             return;
         }
 
-        LogStartingWatcher(_path);
+        if (shouldLogInitialMessage)
+            LogStartingWatcher(_path);
 
         TryOpenClosestRegistryKey(_path);
 
@@ -43,14 +49,14 @@ internal partial class RegistryWatcher(RegistryHive hive,
         }
         else
         {
-            _logger.LogError("Unable to open registry key or any parents for {RegistryKeyPath}.", _path);
-            throw new InvalidOperationException("Unable to open registry key.");
+            StopCore(false);
+            throw new InvalidOperationException($"Unable to open registry key {_path} or one any of its parent.");
         }
 
         _ = Task.Run(() => RunNotifyLoop(_currentlyWatched.Value));
     }
 
-    public void Stop()
+    private void StopCore(bool shouldLogInitialMessage = true)
     {
         if (!_currentlyWatched.HasValue)
         {
@@ -58,21 +64,38 @@ internal partial class RegistryWatcher(RegistryHive hive,
             return;
         }
 
-        LogStoppingWatcher(_path);
+        if (shouldLogInitialMessage)
+            LogStoppingWatcher(_path);
 
         _currentlyWatched.Value.RegistryKey.Dispose();
         _currentlyWatched = null;
     }
 
-    public void Restart()
+    private void Restart()
     {
-        Stop();
-        Start();
+        try
+        {
+            StopCore(false);
+            StartCore(false);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to restart registry watcher for {RegistryKeyPath}. No further events will be produced.",
+                _path);
+            OnErrored();
+            Stop();
+        }
     }
 
     protected void OnChanged()
     {
         var raiseEvent = Changed;
+        raiseEvent?.Invoke(this, new());
+    }
+
+    protected void OnErrored()
+    {
+        var raiseEvent = Errored;
         raiseEvent?.Invoke(this, new());
     }
 
@@ -143,7 +166,7 @@ internal partial class RegistryWatcher(RegistryHive hive,
     [LoggerMessage(Level = LogLevel.Trace, Message = "Registry watcher for {RegistryKeyPath} is already started.")]
     private partial void LogWatcherAlreadyStarted(string registryKeyPath);
 
-    [LoggerMessage(Level = LogLevel.Information, Message = "Starting Registry watcher for {RegistryKeyPath}.")]
+    [LoggerMessage(Level = LogLevel.Information, Message = "Starting registry watcher for {RegistryKeyPath}.")]
     private partial void LogStartingWatcher(string registryKeyPath);
 
     [LoggerMessage(Level = LogLevel.Debug, Message = "Opened registry key {RegistryKeyPath}.")]
@@ -155,7 +178,7 @@ internal partial class RegistryWatcher(RegistryHive hive,
     [LoggerMessage(Level = LogLevel.Trace, Message = "Registry watcher for {RegistryKeyPath} is already stopped.")]
     private partial void LogWatcherAlreadyStopped(string registryKeyPath);
 
-    [LoggerMessage(Level = LogLevel.Information, Message = "Stopping Registry watcher for {RegistryKeyPath}.")]
+    [LoggerMessage(Level = LogLevel.Information, Message = "Stopping registry watcher for {RegistryKeyPath}.")]
     private partial void LogStoppingWatcher(string registryKeyPath);
 
     [LoggerMessage(Level = LogLevel.Debug, Message = "Watching registry key {RegistryKeyPath} for changes.")]
