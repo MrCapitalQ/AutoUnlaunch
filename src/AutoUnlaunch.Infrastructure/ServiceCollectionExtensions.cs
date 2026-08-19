@@ -52,9 +52,10 @@ public static class ServiceCollectionExtensions
 
     public static IServiceCollection AddEA(this IServiceCollection services)
     {
-        services.AddSingleton<ILauncherPollingHandler, EALauncherPollingHandler>();
+        services.AddProcessWatcher();
+        services.AddRegistryWatcher();
+        services.AddSingleton<ILauncherTrackingHandler, EALauncherProcessTrackingHandler>();
         services.TryAddTransient<EASettingsService>();
-        services.TryAddTransient<LauncherChildProcessChecker>();
         return services;
     }
 

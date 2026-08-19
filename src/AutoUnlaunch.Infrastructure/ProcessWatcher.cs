@@ -21,9 +21,7 @@ internal partial class ProcessWatcher : IProcessWatcher
         {
             var targetInstance = (ManagementBaseObject)e.NewEvent.Properties["TargetInstance"].Value;
 
-            OnProcessStarted(new((uint)targetInstance.Properties["ProcessId"].Value,
-                targetInstance.Properties["Description"].Value?.ToString() ?? string.Empty,
-                targetInstance.Properties["ExecutablePath"].Value?.ToString()));
+            OnProcessStarted(ToProcessInfo(targetInstance));
         };
 
         var processStopWatcher = new ManagementEventWatcher(new WqlEventQuery("SELECT * FROM __InstanceDeletionEvent WITHIN 1 WHERE TargetInstance ISA 'Win32_Process'"));
@@ -31,9 +29,7 @@ internal partial class ProcessWatcher : IProcessWatcher
         {
             var targetInstance = (ManagementBaseObject)e.NewEvent.Properties["TargetInstance"].Value;
 
-            OnProcessStopped(new((uint)targetInstance.Properties["ProcessId"].Value,
-                targetInstance.Properties["Description"].Value?.ToString() ?? string.Empty,
-                targetInstance.Properties["ExecutablePath"].Value?.ToString()));
+            OnProcessStopped(ToProcessInfo(targetInstance));
         };
 
         processStartWatcher.Start();
@@ -72,9 +68,31 @@ internal partial class ProcessWatcher : IProcessWatcher
         raiseEvent?.Invoke(this, new ProcessEventArgs(processInfo));
     }
 
+    private ProcessInfo ToProcessInfo(ManagementBaseObject targetInstance)
+    {
+        var processId = (uint)targetInstance.Properties["ProcessId"].Value;
+        var processName = targetInstance.Properties["Description"].Value?.ToString() ?? string.Empty;
+        string? processPath = null;
+
+        try
+        {
+            using var process = Process.GetProcessById((int)processId);
+            processPath = process.MainModule?.FileName;
+        }
+        catch
+        {
+            LogFailedToGetProcessPath(processId);
+        }
+
+        return new(processId, processName, processPath);
+    }
+
     [LoggerMessage(Level = LogLevel.Debug, Message = "Process started: {ProcessInfo}")]
     private partial void LogProcessStarted(ProcessInfo processInfo);
 
     [LoggerMessage(Level = LogLevel.Debug, Message = "Process stopped: {ProcessInfo}")]
     private partial void LogProcessStopped(ProcessInfo processInfo);
+
+    [LoggerMessage(Level = LogLevel.Debug, Message = "Failed to get process path for process {ProcessId}.")]
+    private partial void LogFailedToGetProcessPath(uint processId);
 }

@@ -34,24 +34,24 @@ internal partial class GogLauncherProcessTrackingHandler(IProcessWatcher process
 
     protected override async Task StartCoreAsync(CancellationToken cancellationToken = default)
     {
+        _registryWatcher.Changed -= RegistryWatcher_Changed;
+        _registryWatcher.Changed += RegistryWatcher_Changed;
+        _registryWatcher.Errored -= RegistryWatcher_Errored;
+        _registryWatcher.Errored += RegistryWatcher_Errored;
+
+        try
+        {
+            _registryWatcher.Start();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to start registry watcher. GOG games list will not be refreshed until handler is restarted.");
+        }
+
         await _lock.WaitAsync(cancellationToken);
 
         try
         {
-            _registryWatcher.Changed -= RegistryWatcher_Changed;
-            _registryWatcher.Changed += RegistryWatcher_Changed;
-            _registryWatcher.Errored -= RegistryWatcher_Errored;
-            _registryWatcher.Errored += RegistryWatcher_Errored;
-
-            try
-            {
-                _registryWatcher.Start();
-            }
-            catch (Exception ex)
-            {
-                _logger.LogWarning(ex, "Failed to start registry watcher. GOG games list will not be refreshed until handler is restarted.");
-            }
-
             UpdateInstallPaths();
         }
         finally
@@ -149,21 +149,21 @@ internal partial class GogLauncherProcessTrackingHandler(IProcessWatcher process
         {
             if (!long.TryParse(gameSubKeyName, out var gogGameId))
             {
-                _logger.LogWarning("Skipping registry sub key '{GogGameSubKeyName}' because it is not a valid GOG game ID.", gameSubKeyName);
+                _logger.LogWarning("Skipping registry sub key '{RegistrySubKeyName}' because it is not a valid GOG game ID.", gameSubKeyName);
                 continue;
             }
 
             using var gameSubKey = gamesSubKey.OpenSubKey(gameSubKeyName);
             if (gameSubKey is null)
             {
-                _logger.LogWarning("Could not open GOG game registry sub key '{GogGameSubKeyName}'.", gameSubKeyName);
+                _logger.LogWarning("Could not open GOG game registry sub key '{RegistrySubKeyName}'.", gameSubKeyName);
                 continue;
             }
 
             var path = gameSubKey.GetValue("path")?.ToString();
             if (string.IsNullOrEmpty(path))
             {
-                _logger.LogWarning("GOG game registry sub key '{GogGameSubKeyName}' does not have an entry for 'path'.",
+                _logger.LogWarning("GOG game registry sub key '{RegistrySubKeyName}' does not have an entry for 'path'.",
                     gameSubKeyName);
                 continue;
             }
@@ -178,8 +178,12 @@ internal partial class GogLauncherProcessTrackingHandler(IProcessWatcher process
     {
         using var baseKey = RegistryKey.OpenBaseKey(s_registryHive, s_registryView);
 
-        var launcherPath = baseKey.GetValue($@"{RegistryRootPath}\GalaxyClient\paths", "client")?.ToString();
-        var launcherExecutable = baseKey.GetValue($@"{RegistryRootPath}\GalaxyClient", "clientExecutable")?.ToString();
+        using var pathsKey = baseKey.OpenSubKey($@"{RegistryRootPath}\GalaxyClient\paths");
+        var launcherPath = pathsKey?.GetValue("client")?.ToString();
+
+        using var clientKey = baseKey.OpenSubKey($@"{RegistryRootPath}\GalaxyClient");
+        var launcherExecutable = clientKey?.GetValue("clientExecutable")?.ToString();
+
         if (launcherPath is null || launcherExecutable == null)
         {
             _logger.LogError("Could not determine {LauncherName} executable path.", LauncherName);
@@ -198,7 +202,7 @@ internal partial class GogLauncherProcessTrackingHandler(IProcessWatcher process
             };
             shutdownCommand.Start();
             await shutdownCommand.WaitForExitAsync(cancellationToken);
-            LogGracefulShutdownSucceeded(LauncherName);
+            _logger.LogGracefulShutdownSucceeded(LauncherName);
         }
         catch (Exception ex)
         {
@@ -238,7 +242,4 @@ internal partial class GogLauncherProcessTrackingHandler(IProcessWatcher process
 
     [LoggerMessage(Level = LogLevel.Debug, Message = "Found GOG game {GogGameId} installed at {GogGameInstallPath}.")]
     private partial void LogFoundGame(long gogGameId, string gogGameInstallPath);
-
-    [LoggerMessage(Level = LogLevel.Information, Message = "Request to gracefully shutdown {LauncherName} succeeded.")]
-    private partial void LogGracefulShutdownSucceeded(string launcherName);
 }
