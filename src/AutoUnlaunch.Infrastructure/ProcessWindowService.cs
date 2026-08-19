@@ -1,4 +1,5 @@
 ﻿using Microsoft.Extensions.Logging;
+using MrCapitalQ.AutoUnlaunch.Core;
 using System.Diagnostics;
 
 namespace MrCapitalQ.AutoUnlaunch.Infrastructure;
@@ -66,8 +67,7 @@ internal class ProcessWindowService(TimeProvider timeProvider, ILogger<ProcessWi
                     continue;
                 }
 
-                _logger.LogInformation("Closing current main window with title '{WindowTitle}' ({WindowHandle}) for process {ProcessName} ({ProcessId}).",
-                    process.MainWindowTitle,
+                _logger.LogClosingProcessMainWindow(process.MainWindowTitle,
                     process.MainWindowHandle,
                     process.ProcessName,
                     process.Id);

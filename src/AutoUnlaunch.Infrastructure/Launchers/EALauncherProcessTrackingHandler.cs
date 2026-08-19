@@ -7,7 +7,7 @@ using MrCapitalQ.AutoUnlaunch.Launchers.Handlers;
 
 namespace MrCapitalQ.AutoUnlaunch.Infrastructure.Launchers;
 
-internal class EALauncherProcessTrackingHandler(IProcessWatcher processWatcher,
+internal partial class EALauncherProcessTrackingHandler(IProcessWatcher processWatcher,
     EASettingsService eaSettingsService,
     TimeProvider timeProvider,
     RegistryWatcherFactory registryWatcherFactory,
@@ -125,9 +125,7 @@ internal class EALauncherProcessTrackingHandler(IProcessWatcher processWatcher,
                 {
                     foreach (var process in launcherProcessesResult.Items)
                     {
-                        _logger.LogInformation("Killing process {ProcessName} ({ProcessId}).",
-                            process.ProcessName,
-                            process.Id);
+                        _logger.LogKillingProcess(process.ProcessName, process.Id);
                         process.Kill();
                     }
                 }
@@ -149,8 +147,7 @@ internal class EALauncherProcessTrackingHandler(IProcessWatcher processWatcher,
 
                     foreach (var process in processes)
                     {
-                        _logger.LogInformation("Closing current main window with title '{WindowTitle}' ({WindowHandle}) for process {ProcessName} ({ProcessId}).",
-                            process.MainWindowTitle,
+                        _logger.LogClosingProcessMainWindow(process.MainWindowTitle,
                             process.MainWindowHandle,
                             process.ProcessName,
                             process.Id);
@@ -177,8 +174,7 @@ internal class EALauncherProcessTrackingHandler(IProcessWatcher processWatcher,
         using var launcherProcessesResult = ProcessHelper.GetSessionProcessesByName(LauncherProcessName);
         foreach (var process in launcherProcessesResult.Items)
         {
-            _logger.LogInformation("Minimizing current main window with title '{WindowTitle}' ({WindowHandle}) for process {ProcessName} ({ProcessId}).",
-                process.MainWindowTitle,
+            LogMinimizingProcessMainWindow(process.MainWindowTitle,
                 process.MainWindowHandle,
                 process.ProcessName,
                 process.Id);
@@ -222,41 +218,32 @@ internal class EALauncherProcessTrackingHandler(IProcessWatcher processWatcher,
 
                 if (string.IsNullOrEmpty(displayName) || string.IsNullOrEmpty(installLocation))
                 {
-                    _logger.LogDebug("Skipping registry sub key '{RegistrySubKeyName}' because it does not have a display name or install location value.",
-                        uninstallItemSubKeyName);
+                    LogSkippingRegistryKeyWithoutDisplayNameOrInstallLocation(uninstallItemSubKeyName);
                     continue;
                 }
 
                 if (_installPaths.Contains(installLocation))
                 {
-                    _logger.LogDebug("Skipping registry sub key '{RegistrySubKeyName}' because its install location of {ApplicationInstallPath} is already being tracked.",
-                        uninstallItemSubKeyName,
-                        installLocation);
+                    LogSkippingRegistryKeyAlreadyTracked(uninstallItemSubKeyName, installLocation);
                     continue;
                 }
                 else
-                    _logger.LogDebug("Found installed application '{ApplicationName}' installed at {ApplicationInstallPath}.", displayName, installLocation);
+                    LogFoundInstalledApplication(displayName, installLocation);
 
                 var installerDirectoryPath = Path.Combine(installLocation, "__Installer");
                 if (!Directory.Exists(installerDirectoryPath))
                 {
-                    _logger.LogDebug("Skipping installed application '{ApplicationName}' because {ApplicationInstallPath} does not contain a directory named '__Installer'.",
-                        displayName,
-                        installLocation);
+                    LogSkippingApplicationWithoutInstallerDirectory(displayName, installLocation);
                     continue;
                 }
 
                 if (!File.Exists(Path.Combine(installerDirectoryPath, "installerdata.xml")))
                 {
-                    _logger.LogDebug("Skipping installed application '{ApplicationName}' because {ApplicationInstallerPath} does not contain a file named 'installerdata.xml'.",
-                        displayName,
-                        installerDirectoryPath);
+                    LogSkippingApplicationWithoutInstallerData(displayName, installerDirectoryPath);
                     continue;
                 }
 
-                _logger.LogInformation("Found EA game '{EAGameName}' installed at {EAGameInstallPath}.",
-                    displayName,
-                    installLocation);
+                LogFoundEAGame(displayName, installLocation);
 
                 _installPaths.Add(installLocation);
             }
@@ -293,4 +280,28 @@ internal class EALauncherProcessTrackingHandler(IProcessWatcher processWatcher,
         _registry64Watcher.Dispose();
         _lock.Dispose();
     }
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "Minimizing current main window with title '{WindowTitle}' ({WindowHandle}) for process {ProcessName} ({ProcessId}).")]
+    public partial void LogMinimizingProcessMainWindow(string windowTitle,
+        nint windowHandle,
+        string processName,
+        int processId);
+
+    [LoggerMessage(Level = LogLevel.Debug, Message = "Skipping registry sub key '{RegistrySubKeyName}' because it does not have a display name or install location value.")]
+    public partial void LogSkippingRegistryKeyWithoutDisplayNameOrInstallLocation(string registrySubKeyName);
+
+    [LoggerMessage(Level = LogLevel.Debug, Message = "Skipping registry sub key '{RegistrySubKeyName}' because its install location of {ApplicationInstallPath} is already being tracked.")]
+    public partial void LogSkippingRegistryKeyAlreadyTracked(string registrySubKeyName, string applicationInstallPath);
+
+    [LoggerMessage(Level = LogLevel.Debug, Message = "Found installed application '{ApplicationName}' installed at {ApplicationInstallPath}.")]
+    public partial void LogFoundInstalledApplication(string applicationName, string applicationInstallPath);
+
+    [LoggerMessage(Level = LogLevel.Debug, Message = "Skipping installed application '{ApplicationName}' because {ApplicationInstallPath} does not contain a directory named '__Installer'.")]
+    public partial void LogSkippingApplicationWithoutInstallerDirectory(string applicationName, string applicationInstallPath);
+
+    [LoggerMessage(Level = LogLevel.Debug, Message = "Skipping installed application '{ApplicationName}' because {ApplicationInstallerPath} does not contain a file named 'installerdata.xml'.")]
+    public partial void LogSkippingApplicationWithoutInstallerData(string applicationName, string applicationInstallerPath);
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "Found EA game '{EAGameName}' installed at {EAGameInstallPath}.")]
+    public partial void LogFoundEAGame(string eaGameName, string eaGameInstallPath);
 }

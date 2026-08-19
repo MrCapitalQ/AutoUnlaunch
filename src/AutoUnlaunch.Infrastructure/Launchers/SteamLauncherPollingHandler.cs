@@ -45,9 +45,7 @@ internal class SteamLauncherPollingHandler(TimeProvider timeProvider,
                 {
                     foreach (var process in launcherProcessesResult.Items)
                     {
-                        _logger.LogInformation("Killing process {ProcessName} ({ProcessId}).",
-                            process.ProcessName,
-                            process.Id);
+                        _logger.LogKillingProcess(process.ProcessName, process.Id);
                         process.Kill();
                     }
                 }
@@ -55,7 +53,7 @@ internal class SteamLauncherPollingHandler(TimeProvider timeProvider,
             case LauncherStopMethod.RequestShutdown:
                 if (await _protocolLauncher.LaunchUriAsync(s_exitUri))
                 {
-                    _logger.LogInformation("Request to gracefully shutdown {LauncherName} succeeded.", LauncherName);
+                    _logger.LogGracefulShutdownSucceeded(LauncherName);
 
                     if (_steamSettingsService.GetHidesShutdownScreen() != true)
                         return;

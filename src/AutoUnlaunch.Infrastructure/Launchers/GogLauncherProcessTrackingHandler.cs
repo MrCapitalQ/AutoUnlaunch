@@ -198,7 +198,7 @@ internal partial class GogLauncherProcessTrackingHandler(IProcessWatcher process
             };
             shutdownCommand.Start();
             await shutdownCommand.WaitForExitAsync(cancellationToken);
-            LogGracefulShutdownSucceeded(LauncherName);
+            _logger.LogGracefulShutdownSucceeded(LauncherName);
         }
         catch (Exception ex)
         {
@@ -238,7 +238,4 @@ internal partial class GogLauncherProcessTrackingHandler(IProcessWatcher process
 
     [LoggerMessage(Level = LogLevel.Debug, Message = "Found GOG game {GogGameId} installed at {GogGameInstallPath}.")]
     private partial void LogFoundGame(long gogGameId, string gogGameInstallPath);
-
-    [LoggerMessage(Level = LogLevel.Information, Message = "Request to gracefully shutdown {LauncherName} succeeded.")]
-    private partial void LogGracefulShutdownSucceeded(string launcherName);
 }

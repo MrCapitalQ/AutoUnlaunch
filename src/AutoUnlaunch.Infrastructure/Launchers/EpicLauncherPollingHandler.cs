@@ -68,9 +68,7 @@ internal class EpicLauncherPollingHandler(TimeProvider timeProvider,
                 {
                     foreach (var process in launcherProcessesResult.Items)
                     {
-                        _logger.LogInformation("Killing process {ProcessName} ({ProcessId}).",
-                            process.ProcessName,
-                            process.Id);
+                        _logger.LogKillingProcess(process.ProcessName, process.Id);
                         process.Kill();
                     }
                 }
@@ -97,8 +95,7 @@ internal class EpicLauncherPollingHandler(TimeProvider timeProvider,
 
                     foreach (var process in processesWithMainWindow)
                     {
-                        _logger.LogInformation("Closing current main window with title '{WindowTitle}' ({WindowHandle}) for process {ProcessName} ({ProcessId}).",
-                            process.MainWindowTitle,
+                        _logger.LogClosingProcessMainWindow(process.MainWindowTitle,
                             process.MainWindowHandle,
                             process.ProcessName,
                             process.Id);
