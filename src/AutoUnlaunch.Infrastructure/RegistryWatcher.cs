@@ -6,10 +6,11 @@ using Windows.Win32.System.Registry;
 
 namespace MrCapitalQ.AutoUnlaunch.Infrastructure;
 
-internal class RegistryWatcher(string name, RegistryView view = RegistryView.Default)
+internal class RegistryWatcher(RegistryHive hive, string name, RegistryView view = RegistryView.Default) : IDisposable
 {
     public event EventHandler<EventArgs>? Changed;
 
+    private readonly RegistryHive _hive = hive;
     private readonly string _name = name;
     private readonly RegistryView _view = view;
 
@@ -22,19 +23,12 @@ internal class RegistryWatcher(string name, RegistryView view = RegistryView.Def
         if (_key.HasValue)
             return;
 
-        var flags = _view switch
-        {
-            RegistryView.Registry64 => REG_SAM_FLAGS.KEY_READ | REG_SAM_FLAGS.KEY_WOW64_64KEY,
-            RegistryView.Registry32 => REG_SAM_FLAGS.KEY_READ | REG_SAM_FLAGS.KEY_WOW64_32KEY,
-            _ => REG_SAM_FLAGS.KEY_READ
-        };
-
         HKEY key;
         unsafe
         {
             fixed (char* keyNamePointer = _name)
             {
-                var result = PInvoke.RegOpenKeyEx(HKEY.HKEY_LOCAL_MACHINE, keyNamePointer, 0, flags, &key);
+                var result = PInvoke.RegOpenKeyEx(GetHive(), keyNamePointer, 0, GetFlags(), &key);
                 // TODO: If error is ERROR_FILE_NOT_FOUND, do we set up a different watch to check for when this appears?
                 if (result is not WIN32_ERROR.ERROR_SUCCESS)
                 {
@@ -86,12 +80,37 @@ internal class RegistryWatcher(string name, RegistryView view = RegistryView.Def
             OnChanged();
         }
     }
+
+    private HKEY GetHive()
+    {
+        return _hive switch
+        {
+            RegistryHive.ClassesRoot => HKEY.HKEY_CLASSES_ROOT,
+            RegistryHive.CurrentConfig => HKEY.HKEY_CURRENT_CONFIG,
+            RegistryHive.CurrentUser => HKEY.HKEY_CURRENT_USER,
+            RegistryHive.LocalMachine => HKEY.HKEY_LOCAL_MACHINE,
+            RegistryHive.Users => HKEY.HKEY_USERS,
+            _ => throw new InvalidOperationException($"Unknown registry hive {_hive}")
+        };
+    }
+
+    private REG_SAM_FLAGS GetFlags()
+    {
+        return _view switch
+        {
+            RegistryView.Registry64 => REG_SAM_FLAGS.KEY_READ | REG_SAM_FLAGS.KEY_WOW64_64KEY,
+            RegistryView.Registry32 => REG_SAM_FLAGS.KEY_READ | REG_SAM_FLAGS.KEY_WOW64_32KEY,
+            _ => REG_SAM_FLAGS.KEY_READ
+        };
+    }
+
+    public void Dispose() => Stop();
 }
 
 internal class RegistryWatcherFactory(IServiceProvider services)
 {
     private readonly IServiceProvider _services = services;
 
-    public RegistryWatcher Create(string name, RegistryView view = RegistryView.Default)
-        => ActivatorUtilities.CreateInstance<RegistryWatcher>(_services, name, view);
+    public RegistryWatcher Create(RegistryHive hive, string name, RegistryView view = RegistryView.Default)
+        => ActivatorUtilities.CreateInstance<RegistryWatcher>(_services, hive, name, view);
 }

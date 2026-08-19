@@ -13,15 +13,18 @@ internal partial class GogLauncherProcessTrackingHandler(IProcessWatcher process
     RegistryWatcherFactory registryWatcherFactory,
     ProcessWindowService processWindowService,
     ILogger<GogLauncherProcessTrackingHandler> logger)
-    : LauncherProcessTrackingHandler(processWatcher, gogSettingsService, timeProvider, logger)
+    : LauncherProcessTrackingHandler(processWatcher, gogSettingsService, timeProvider, logger), IAsyncDisposable
 {
     private const string LauncherProcessName = "GalaxyClient";
     private const string RegistryRootPath = @"SOFTWARE\GOG.com";
 
+    private static readonly RegistryHive s_registryHive = RegistryHive.LocalMachine;
     private static readonly RegistryView s_registryView = RegistryView.Registry32;
 
     private readonly GogSettingsService _gogSettingsService = gogSettingsService;
-    private readonly RegistryWatcher _registryWatcher = registryWatcherFactory.Create(@$"{RegistryRootPath}\Games", s_registryView);
+    private readonly RegistryWatcher _registryWatcher = registryWatcherFactory.Create(s_registryHive,
+        @$"{RegistryRootPath}\Games",
+        s_registryView);
     private readonly ProcessWindowService _processWindowService = processWindowService;
     private readonly ILogger<GogLauncherProcessTrackingHandler> _logger = logger;
     private readonly SemaphoreSlim _lock = new(1);
@@ -123,7 +126,7 @@ internal partial class GogLauncherProcessTrackingHandler(IProcessWatcher process
 
         _installPaths.Clear();
 
-        using var baseKey = RegistryKey.OpenBaseKey(RegistryHive.LocalMachine, s_registryView);
+        using var baseKey = RegistryKey.OpenBaseKey(s_registryHive, s_registryView);
         using var gamesSubKey = baseKey.OpenSubKey($@"{RegistryRootPath}\Games");
         if (gamesSubKey is null)
         {
@@ -162,7 +165,7 @@ internal partial class GogLauncherProcessTrackingHandler(IProcessWatcher process
 
     private async Task RequestLauncherShutdown(CancellationToken cancellationToken)
     {
-        using var baseKey = RegistryKey.OpenBaseKey(RegistryHive.LocalMachine, s_registryView);
+        using var baseKey = RegistryKey.OpenBaseKey(s_registryHive, s_registryView);
 
         var launcherPath = baseKey.GetValue($@"{RegistryRootPath}\GalaxyClient\paths", "client")?.ToString();
         var launcherExecutable = baseKey.GetValue($@"{RegistryRootPath}\GalaxyClient", "clientExecutable")?.ToString();
@@ -208,6 +211,13 @@ internal partial class GogLauncherProcessTrackingHandler(IProcessWatcher process
         {
             _lock.Release();
         }
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        await StopAsync();
+        _registryWatcher.Dispose();
+        _lock.Dispose();
     }
 
     [LoggerMessage(Level = LogLevel.Debug, Message = "Found GOG game {GogGameId} installed at {GogGameInstallPath}.")]
