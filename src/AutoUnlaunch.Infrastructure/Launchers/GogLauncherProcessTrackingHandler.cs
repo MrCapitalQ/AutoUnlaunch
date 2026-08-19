@@ -4,30 +4,29 @@ using MrCapitalQ.AutoUnlaunch.Core;
 using MrCapitalQ.AutoUnlaunch.Core.AppData;
 using MrCapitalQ.AutoUnlaunch.Core.Launchers;
 using System.Diagnostics;
-using System.Management;
 
 namespace MrCapitalQ.AutoUnlaunch.Infrastructure.Launchers;
 
 internal partial class GogLauncherProcessTrackingHandler(IProcessWatcher processWatcher,
     GogSettingsService gogSettingsService,
-    ProcessWindowService processWindowService,
     TimeProvider timeProvider,
+    RegistryWatcherFactory registryWatcherFactory,
+    ProcessWindowService processWindowService,
     ILogger<GogLauncherProcessTrackingHandler> logger)
-    : LauncherProcessTrackingHandler(processWatcher, gogSettingsService, timeProvider, logger)
+    : LauncherProcessTrackingHandler(processWatcher, gogSettingsService, timeProvider, logger), IAsyncDisposable
 {
     private const string LauncherProcessName = "GalaxyClient";
-    private const string RegistryRootPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\WOW6432Node\GOG.com\GalaxyClient";
-    private const string RegistryWatcherQuery = """
-        SELECT *
-        FROM RegistryTreeChangeEvent
-        WHERE Hive = 'HKEY_LOCAL_MACHINE'
-        AND RootPath = 'SOFTWARE\\WOW6432Node\\GOG.com'
-        """;
+    private const string RegistryRootPath = @"SOFTWARE\GOG.com";
+
+    private static readonly RegistryHive s_registryHive = RegistryHive.LocalMachine;
+    private static readonly RegistryView s_registryView = RegistryView.Registry32;
 
     private readonly GogSettingsService _gogSettingsService = gogSettingsService;
+    private readonly RegistryWatcher _registryWatcher = registryWatcherFactory.Create(s_registryHive,
+        @$"{RegistryRootPath}\Games",
+        s_registryView);
     private readonly ProcessWindowService _processWindowService = processWindowService;
     private readonly ILogger<GogLauncherProcessTrackingHandler> _logger = logger;
-    private readonly ManagementEventWatcher _registryTreeWatcher = new(new ManagementScope(@"root\default"), new EventQuery(RegistryWatcherQuery));
     private readonly SemaphoreSlim _lock = new(1);
     private readonly Dictionary<long, string> _installPaths = [];
 
@@ -39,9 +38,19 @@ internal partial class GogLauncherProcessTrackingHandler(IProcessWatcher process
 
         try
         {
-            _registryTreeWatcher.EventArrived -= RegistryTreeWatcher_EventArrived;
-            _registryTreeWatcher.EventArrived += RegistryTreeWatcher_EventArrived;
-            _registryTreeWatcher.Start();
+            _registryWatcher.Changed -= RegistryWatcher_Changed;
+            _registryWatcher.Changed += RegistryWatcher_Changed;
+            _registryWatcher.Errored -= RegistryWatcher_Errored;
+            _registryWatcher.Errored += RegistryWatcher_Errored;
+
+            try
+            {
+                _registryWatcher.Start();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to start registry watcher. GOG games list will not be refreshed until handler is restarted.");
+            }
 
             UpdateInstallPaths();
         }
@@ -53,8 +62,9 @@ internal partial class GogLauncherProcessTrackingHandler(IProcessWatcher process
 
     protected override Task StopCoreAsync(CancellationToken cancellationToken = default)
     {
-        _registryTreeWatcher.EventArrived -= RegistryTreeWatcher_EventArrived;
-        _registryTreeWatcher.Stop();
+        _registryWatcher.Changed -= RegistryWatcher_Changed;
+        _registryWatcher.Errored -= RegistryWatcher_Errored;
+        _registryWatcher.Stop();
 
         return Task.CompletedTask;
     }
@@ -127,7 +137,8 @@ internal partial class GogLauncherProcessTrackingHandler(IProcessWatcher process
 
         _installPaths.Clear();
 
-        using var gamesSubKey = Registry.LocalMachine.OpenSubKey($@"SOFTWARE\WOW6432Node\GOG.com\Games");
+        using var baseKey = RegistryKey.OpenBaseKey(s_registryHive, s_registryView);
+        using var gamesSubKey = baseKey.OpenSubKey($@"{RegistryRootPath}\Games");
         if (gamesSubKey is null)
         {
             _logger.LogWarning("Could not open GOG games registry sub key.");
@@ -138,21 +149,21 @@ internal partial class GogLauncherProcessTrackingHandler(IProcessWatcher process
         {
             if (!long.TryParse(gameSubKeyName, out var gogGameId))
             {
-                _logger.LogWarning("Skipping registry sub key {GogGameSubKeyName} becuase it is not a valid GOG game ID.", gameSubKeyName);
+                _logger.LogWarning("Skipping registry sub key '{GogGameSubKeyName}' because it is not a valid GOG game ID.", gameSubKeyName);
                 continue;
             }
 
             using var gameSubKey = gamesSubKey.OpenSubKey(gameSubKeyName);
             if (gameSubKey is null)
             {
-                _logger.LogWarning("Could not open GOG game registry sub key {GogGameSubKeyName}.", gameSubKeyName);
+                _logger.LogWarning("Could not open GOG game registry sub key '{GogGameSubKeyName}'.", gameSubKeyName);
                 continue;
             }
 
             var path = gameSubKey.GetValue("path")?.ToString();
             if (string.IsNullOrEmpty(path))
             {
-                _logger.LogWarning("GOG game registry sub key {GogGameSubKeyName} does not have an entry for 'path'.",
+                _logger.LogWarning("GOG game registry sub key '{GogGameSubKeyName}' does not have an entry for 'path'.",
                     gameSubKeyName);
                 continue;
             }
@@ -165,8 +176,10 @@ internal partial class GogLauncherProcessTrackingHandler(IProcessWatcher process
 
     private async Task RequestLauncherShutdown(CancellationToken cancellationToken)
     {
-        var launcherPath = Registry.GetValue($@"{RegistryRootPath}\paths", "client", null)?.ToString();
-        var launcherExecutable = Registry.GetValue(RegistryRootPath, "clientExecutable", null)?.ToString();
+        using var baseKey = RegistryKey.OpenBaseKey(s_registryHive, s_registryView);
+
+        var launcherPath = baseKey.GetValue($@"{RegistryRootPath}\GalaxyClient\paths", "client")?.ToString();
+        var launcherExecutable = baseKey.GetValue($@"{RegistryRootPath}\GalaxyClient", "clientExecutable")?.ToString();
         if (launcherPath is null || launcherExecutable == null)
         {
             _logger.LogError("Could not determine {LauncherName} executable path.", LauncherName);
@@ -193,7 +206,7 @@ internal partial class GogLauncherProcessTrackingHandler(IProcessWatcher process
         }
     }
 
-    private async void RegistryTreeWatcher_EventArrived(object sender, EventArrivedEventArgs e)
+    private async void RegistryWatcher_Changed(object? sender, EventArgs e)
     {
         await _lock.WaitAsync();
 
@@ -209,6 +222,18 @@ internal partial class GogLauncherProcessTrackingHandler(IProcessWatcher process
         {
             _lock.Release();
         }
+    }
+
+    private void RegistryWatcher_Errored(object? sender, EventArgs e)
+    {
+        _logger.LogWarning("Registry watcher encountered an unexpected error and has stopped. GOG games list will not be refreshed until handler is restarted.");
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        await StopAsync();
+        _registryWatcher.Dispose();
+        _lock.Dispose();
     }
 
     [LoggerMessage(Level = LogLevel.Debug, Message = "Found GOG game {GogGameId} installed at {GogGameInstallPath}.")]
