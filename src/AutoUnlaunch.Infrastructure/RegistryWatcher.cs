@@ -1,4 +1,5 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using Microsoft.Win32;
 using Windows.Win32;
 using Windows.Win32.Foundation;
@@ -6,51 +7,67 @@ using Windows.Win32.System.Registry;
 
 namespace MrCapitalQ.AutoUnlaunch.Infrastructure;
 
-internal class RegistryWatcher(RegistryHive hive, string name, RegistryView view = RegistryView.Default) : IDisposable
+internal partial class RegistryWatcher(RegistryHive hive,
+    string path,
+    RegistryView view,
+    ILogger<RegistryWatcher> logger) : IDisposable
 {
     public event EventHandler<EventArgs>? Changed;
 
     private readonly RegistryHive _hive = hive;
-    private readonly string _name = name;
+    private readonly string _path = path;
     private readonly RegistryView _view = view;
+    private readonly ILogger<RegistryWatcher> _logger = logger;
+    private (string Path, RegistryKey RegistryKey)? _currentlyWatched;
 
-    private HKEY? _key;
-
-    public bool IsStarted => _key.HasValue;
+    public bool IsStarted => _currentlyWatched.HasValue;
 
     public void Start()
     {
-        if (_key.HasValue)
-            return;
-
-        HKEY key;
-        unsafe
+        if (_currentlyWatched.HasValue)
         {
-            fixed (char* keyNamePointer = _name)
-            {
-                var result = PInvoke.RegOpenKeyEx(GetHive(), keyNamePointer, 0, GetFlags(), &key);
-                // TODO: If error is ERROR_FILE_NOT_FOUND, do we set up a different watch to check for when this appears?
-                if (result is not WIN32_ERROR.ERROR_SUCCESS)
-                {
-                    // TODO: Log
-                    // TODO: throw?
-                    return;
-                }
-
-                _key = key;
-            }
+            LogWatcherAlreadyStarted(_path);
+            return;
         }
 
-        _ = Task.Run(RunNotifyLoop);
+        LogStartingWatcher(_path);
+
+        TryOpenClosestRegistryKey(_path);
+
+        if (_currentlyWatched.HasValue)
+        {
+            if (string.Equals(_currentlyWatched.Value.Path, _path, StringComparison.OrdinalIgnoreCase))
+                LogOpenedRegistryKey(_path);
+            else
+                LogOpenedClosestParentToRegistryKey(_currentlyWatched.Value.Path, _path);
+        }
+        else
+        {
+            _logger.LogError("Unable to open registry key or any parents for {RegistryKeyPath}.", _path);
+            throw new InvalidOperationException("Unable to open registry key.");
+        }
+
+        _ = Task.Run(() => RunNotifyLoop(_currentlyWatched.Value));
     }
 
     public void Stop()
     {
-        if (!_key.HasValue)
+        if (!_currentlyWatched.HasValue)
+        {
+            LogWatcherAlreadyStopped(_path);
             return;
+        }
 
-        PInvoke.RegCloseKey(_key.Value);
-        _key = null;
+        LogStoppingWatcher(_path);
+
+        _currentlyWatched.Value.RegistryKey.Dispose();
+        _currentlyWatched = null;
+    }
+
+    public void Restart()
+    {
+        Stop();
+        Start();
     }
 
     protected void OnChanged()
@@ -59,52 +76,99 @@ internal class RegistryWatcher(RegistryHive hive, string name, RegistryView view
         raiseEvent?.Invoke(this, new());
     }
 
-    private void RunNotifyLoop()
+    private void TryOpenClosestRegistryKey(string path)
     {
+        using var baseKey = RegistryKey.OpenBaseKey(_hive, _view);
+        var key = baseKey.OpenSubKey(path);
+
+        if (key is null)
+        {
+            if (Path.GetDirectoryName(path) is { Length: > 0 } parentPath)
+                TryOpenClosestRegistryKey(parentPath);
+            return;
+        }
+
+        _currentlyWatched = (path, key);
+    }
+
+    private void RunNotifyLoop((string Path, RegistryKey RegistryKey) target)
+    {
+        LogWatchingRegistryKey(target.Path);
+
         var filter = REG_NOTIFY_FILTER.REG_NOTIFY_CHANGE_NAME | REG_NOTIFY_FILTER.REG_NOTIFY_CHANGE_LAST_SET;
 
-        while (_key.HasValue)
+        while (_currentlyWatched == target)
         {
-            var notifyResult = PInvoke.RegNotifyChangeKeyValue(_key.Value, true, filter, HANDLE.Null, false);
-            // TODO: If error is ERROR_KEY_DELETED, do we set up a different watch to check for when this reappears?
+            var notifyResult = PInvoke.RegNotifyChangeKeyValue(target.RegistryKey.Handle, true, filter, fAsynchronous: false);
+
             if (notifyResult is not WIN32_ERROR.ERROR_SUCCESS)
             {
-                // TODO: Log
-                // TODO: Emit error
-                Stop();
-                continue;
+                _logger.LogWarning("Error code {Win32Error} encountered while waiting for registry key change notification. Restarting watcher.",
+                    notifyResult);
+                Restart();
+                return;
             }
-
-            // TODO: Check for name change of the target key before emitting
-
-            OnChanged();
+            else if (!string.Equals(GetClosestPath(_hive, _path, _view), target.Path, StringComparison.OrdinalIgnoreCase))
+            {
+                LogRestartDueToRegistryTreeChange(_path);
+                Restart();
+                return;
+            }
+            else if (string.Equals(_path, target.Path, StringComparison.OrdinalIgnoreCase))
+            {
+                LogTargetRegistryTreeChanged(_path);
+                OnChanged();
+            }
         }
+
+        LogNotWatchingRegistryKey(target.Path);
     }
 
-    private HKEY GetHive()
+    private static string? GetClosestPath(RegistryHive hive, string? path, RegistryView view)
     {
-        return _hive switch
-        {
-            RegistryHive.ClassesRoot => HKEY.HKEY_CLASSES_ROOT,
-            RegistryHive.CurrentConfig => HKEY.HKEY_CURRENT_CONFIG,
-            RegistryHive.CurrentUser => HKEY.HKEY_CURRENT_USER,
-            RegistryHive.LocalMachine => HKEY.HKEY_LOCAL_MACHINE,
-            RegistryHive.Users => HKEY.HKEY_USERS,
-            _ => throw new InvalidOperationException($"Unknown registry hive {_hive}")
-        };
-    }
+        if (string.IsNullOrWhiteSpace(path))
+            return null;
 
-    private REG_SAM_FLAGS GetFlags()
-    {
-        return _view switch
-        {
-            RegistryView.Registry64 => REG_SAM_FLAGS.KEY_READ | REG_SAM_FLAGS.KEY_WOW64_64KEY,
-            RegistryView.Registry32 => REG_SAM_FLAGS.KEY_READ | REG_SAM_FLAGS.KEY_WOW64_32KEY,
-            _ => REG_SAM_FLAGS.KEY_READ
-        };
+        using var baseKey = RegistryKey.OpenBaseKey(hive, view);
+        using var subKey = baseKey.OpenSubKey(path);
+
+        if (subKey is null)
+            return GetClosestPath(hive, Path.GetDirectoryName(path), view);
+
+        return path;
     }
 
     public void Dispose() => Stop();
+
+    [LoggerMessage(Level = LogLevel.Trace, Message = "Registry watcher for {RegistryKeyPath} is already started.")]
+    private partial void LogWatcherAlreadyStarted(string registryKeyPath);
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "Starting Registry watcher for {RegistryKeyPath}.")]
+    private partial void LogStartingWatcher(string registryKeyPath);
+
+    [LoggerMessage(Level = LogLevel.Debug, Message = "Opened registry key {RegistryKeyPath}.")]
+    private partial void LogOpenedRegistryKey(string registryKeyPath);
+
+    [LoggerMessage(Level = LogLevel.Debug, Message = "Opened closest parent registry key at {ParentRegistryKeyPath} for {RegistryKeyPath}.")]
+    private partial void LogOpenedClosestParentToRegistryKey(string parentRegistryKeyPath, string registryKeyPath);
+
+    [LoggerMessage(Level = LogLevel.Trace, Message = "Registry watcher for {RegistryKeyPath} is already stopped.")]
+    private partial void LogWatcherAlreadyStopped(string registryKeyPath);
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "Stopping Registry watcher for {RegistryKeyPath}.")]
+    private partial void LogStoppingWatcher(string registryKeyPath);
+
+    [LoggerMessage(Level = LogLevel.Debug, Message = "Watching registry key {RegistryKeyPath} for changes.")]
+    private partial void LogWatchingRegistryKey(string registryKeyPath);
+
+    [LoggerMessage(Level = LogLevel.Debug, Message = "Registry key {RegistryKeyPath} or one of its parent was created, deleted, or renamed. Restarting watcher.")]
+    private partial void LogRestartDueToRegistryTreeChange(string registryKeyPath);
+
+    [LoggerMessage(Level = LogLevel.Debug, Message = "Registry key {RegistryKeyPath} or its sub tree changed. Raising changed event.")]
+    private partial void LogTargetRegistryTreeChanged(string registryKeyPath);
+
+    [LoggerMessage(Level = LogLevel.Debug, Message = "Registry key {RegistryKeyPath} is no longer being watched. Exiting notify loop.")]
+    private partial void LogNotWatchingRegistryKey(string registryKeyPath);
 }
 
 internal class RegistryWatcherFactory(IServiceProvider services)

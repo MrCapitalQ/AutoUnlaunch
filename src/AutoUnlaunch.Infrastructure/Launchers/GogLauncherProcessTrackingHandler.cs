@@ -138,21 +138,21 @@ internal partial class GogLauncherProcessTrackingHandler(IProcessWatcher process
         {
             if (!long.TryParse(gameSubKeyName, out var gogGameId))
             {
-                _logger.LogWarning("Skipping registry sub key {GogGameSubKeyName} becuase it is not a valid GOG game ID.", gameSubKeyName);
+                _logger.LogWarning("Skipping registry sub key '{GogGameSubKeyName}' because it is not a valid GOG game ID.", gameSubKeyName);
                 continue;
             }
 
             using var gameSubKey = gamesSubKey.OpenSubKey(gameSubKeyName);
             if (gameSubKey is null)
             {
-                _logger.LogWarning("Could not open GOG game registry sub key {GogGameSubKeyName}.", gameSubKeyName);
+                _logger.LogWarning("Could not open GOG game registry sub key '{GogGameSubKeyName}'.", gameSubKeyName);
                 continue;
             }
 
             var path = gameSubKey.GetValue("path")?.ToString();
             if (string.IsNullOrEmpty(path))
             {
-                _logger.LogWarning("GOG game registry sub key {GogGameSubKeyName} does not have an entry for 'path'.",
+                _logger.LogWarning("GOG game registry sub key '{GogGameSubKeyName}' does not have an entry for 'path'.",
                     gameSubKeyName);
                 continue;
             }
