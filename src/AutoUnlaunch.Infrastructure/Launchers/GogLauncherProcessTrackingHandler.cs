@@ -48,16 +48,7 @@ internal partial class GogLauncherProcessTrackingHandler(IProcessWatcher process
             _logger.LogWarning(ex, "Failed to start registry watcher. GOG games list will not be refreshed until handler is restarted.");
         }
 
-        await _lock.WaitAsync(cancellationToken);
-
-        try
-        {
-            UpdateInstallPaths();
-        }
-        finally
-        {
-            _lock.Release();
-        }
+        await UpdateInstallPathsAsync(cancellationToken);
     }
 
     protected override Task StopCoreAsync(CancellationToken cancellationToken = default)
@@ -131,46 +122,81 @@ internal partial class GogLauncherProcessTrackingHandler(IProcessWatcher process
         }
     }
 
-    private void UpdateInstallPaths()
+    private async Task UpdateInstallPathsAsync(CancellationToken cancellationToken = default)
     {
+        await _lock.WaitAsync(cancellationToken);
+
         _logger.LogInformation("Updating GOG game install locations.");
 
         _installPaths.Clear();
 
-        using var baseKey = RegistryKey.OpenBaseKey(s_registryHive, s_registryView);
-        using var gamesSubKey = baseKey.OpenSubKey($@"{RegistryRootPath}\Games");
-        if (gamesSubKey is null)
+        try
         {
-            _logger.LogWarning("Could not open GOG games registry sub key.");
-            return;
+            using var baseKey = RegistryKey.OpenBaseKey(s_registryHive, s_registryView);
+            using var gamesSubKey = baseKey.OpenSubKey($@"{RegistryRootPath}\Games");
+            if (gamesSubKey is null)
+            {
+                _logger.LogWarning("Could not open GOG games registry sub key.");
+                return;
+            }
+
+            foreach (var gameSubKeyName in gamesSubKey.GetSubKeyNames())
+            {
+                try
+                {
+                    if (!long.TryParse(gameSubKeyName, out var gogGameId))
+                    {
+                        _logger.LogWarning("Skipping registry sub key '{RegistrySubKeyName}' because it is not a valid GOG game ID.", gameSubKeyName);
+                        continue;
+                    }
+
+                    using var gameSubKey = gamesSubKey.OpenSubKey(gameSubKeyName);
+                    if (gameSubKey is null)
+                    {
+                        _logger.LogWarning("Could not open GOG game registry sub key '{RegistrySubKeyName}'.", gameSubKeyName);
+                        continue;
+                    }
+
+                    var path = gameSubKey.GetValue("path")?.ToString();
+                    if (string.IsNullOrEmpty(path))
+                    {
+                        _logger.LogWarning("GOG game registry sub key '{RegistrySubKeyName}' does not have an entry for 'path'.",
+                            gameSubKeyName);
+                        continue;
+                    }
+
+                    var gameName = gameSubKey.GetValue("gameName")?.ToString() ?? "Unknown Game";
+
+                    try
+                    {
+                        var normalizedInstallPath = Path.GetFullPath(path);
+                        _installPaths[gogGameId] = normalizedInstallPath;
+                        LogFoundGame(gameName, gogGameId, normalizedInstallPath);
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError(ex,
+                            "Found GOG game '{GogGameName}' ({GogGameId}) but something went wrong while trying to track its install location of {GogGameInstallPath}.",
+                            gameName,
+                            gogGameId,
+                            path);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex,
+                        "Found GOG game registry sub key '{RegistrySubKeyName}' but something went wrong while trying to read it.",
+                        gameSubKeyName);
+                }
+            }
         }
-
-        foreach (var gameSubKeyName in gamesSubKey.GetSubKeyNames())
+        catch (Exception ex)
         {
-            if (!long.TryParse(gameSubKeyName, out var gogGameId))
-            {
-                _logger.LogWarning("Skipping registry sub key '{RegistrySubKeyName}' because it is not a valid GOG game ID.", gameSubKeyName);
-                continue;
-            }
-
-            using var gameSubKey = gamesSubKey.OpenSubKey(gameSubKeyName);
-            if (gameSubKey is null)
-            {
-                _logger.LogWarning("Could not open GOG game registry sub key '{RegistrySubKeyName}'.", gameSubKeyName);
-                continue;
-            }
-
-            var path = gameSubKey.GetValue("path")?.ToString();
-            if (string.IsNullOrEmpty(path))
-            {
-                _logger.LogWarning("GOG game registry sub key '{RegistrySubKeyName}' does not have an entry for 'path'.",
-                    gameSubKeyName);
-                continue;
-            }
-
-            LogFoundGame(gogGameId, path);
-
-            _installPaths[gogGameId] = path;
+            _logger.LogError(ex, "Something went wrong while updating Epic game install paths. Game detection may not work properly.");
+        }
+        finally
+        {
+            _lock.Release();
         }
     }
 
@@ -212,20 +238,7 @@ internal partial class GogLauncherProcessTrackingHandler(IProcessWatcher process
 
     private async void RegistryWatcher_Changed(object? sender, EventArgs e)
     {
-        await _lock.WaitAsync();
-
-        try
-        {
-            UpdateInstallPaths();
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Something went wrong while updating GOG game install paths.");
-        }
-        finally
-        {
-            _lock.Release();
-        }
+        await UpdateInstallPathsAsync();
     }
 
     private void RegistryWatcher_Errored(object? sender, EventArgs e)
@@ -240,6 +253,6 @@ internal partial class GogLauncherProcessTrackingHandler(IProcessWatcher process
         _lock.Dispose();
     }
 
-    [LoggerMessage(Level = LogLevel.Debug, Message = "Found GOG game {GogGameId} installed at {GogGameInstallPath}.")]
-    private partial void LogFoundGame(long gogGameId, string gogGameInstallPath);
+    [LoggerMessage(Level = LogLevel.Information, Message = "Found GOG game '{GogGameName}' ({GogGameId}) installed at {GogGameInstallPath}.")]
+    private partial void LogFoundGame(string gogGameName, long gogGameId, string gogGameInstallPath);
 }

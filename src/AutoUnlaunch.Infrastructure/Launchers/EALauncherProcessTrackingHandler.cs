@@ -63,16 +63,7 @@ internal partial class EALauncherProcessTrackingHandler(IProcessWatcher processW
             _logger.LogWarning(ex, "Failed to start 64-bit view registry watcher. EA games list refresh will not function properly until handler is restarted.");
         }
 
-        await _lock.WaitAsync(cancellationToken);
-
-        try
-        {
-            UpdateInstallPaths();
-        }
-        finally
-        {
-            _lock.Release();
-        }
+        await UpdateInstallPathsAsync(cancellationToken);
     }
 
     protected override Task StopCoreAsync(CancellationToken cancellationToken = default)
@@ -187,85 +178,107 @@ internal partial class EALauncherProcessTrackingHandler(IProcessWatcher processW
 
         return Task.CompletedTask;
     }
-    private void UpdateInstallPaths()
+
+    private async Task UpdateInstallPathsAsync(CancellationToken cancellationToken = default)
     {
+        await _lock.WaitAsync(cancellationToken);
+
         _logger.LogInformation("Updating EA game install locations.");
 
         _installPaths.Clear();
 
         foreach (var view in s_registryViews)
         {
-            using var baseKey = RegistryKey.OpenBaseKey(s_registryHive, view);
-            using var uninstallSubKey = baseKey.OpenSubKey(RegistryRootPath);
-            if (uninstallSubKey is null)
+            try
             {
-                _logger.LogWarning("Could not open Windows application uninstall registry sub key.");
-                return;
+                using var baseKey = RegistryKey.OpenBaseKey(s_registryHive, view);
+                using var uninstallSubKey = baseKey.OpenSubKey(RegistryRootPath);
+                if (uninstallSubKey is null)
+                {
+                    _logger.LogWarning("Could not open Windows application uninstall registry sub key.");
+                    return;
+                }
+
+                foreach (var uninstallItemSubKeyName in uninstallSubKey.GetSubKeyNames())
+                {
+                    try
+                    {
+                        using var uninstallItemSubKey = uninstallSubKey.OpenSubKey(uninstallItemSubKeyName);
+                        if (uninstallItemSubKey is null)
+                        {
+                            _logger.LogWarning("Could not open Windows application uninstall item registry sub key '{RegistrySubKeyName}'.",
+                                uninstallItemSubKeyName);
+                            continue;
+                        }
+
+                        var displayName = uninstallItemSubKey.GetValue("DisplayName")?.ToString();
+                        var installLocation = uninstallItemSubKey.GetValue("InstallLocation")?.ToString();
+
+                        if (string.IsNullOrEmpty(displayName) || string.IsNullOrEmpty(installLocation))
+                        {
+                            LogSkippingRegistryKeyWithoutDisplayNameOrInstallLocation(uninstallItemSubKeyName);
+                            continue;
+                        }
+
+                        if (_installPaths.Contains(installLocation))
+                        {
+                            LogSkippingRegistryKeyAlreadyTracked(uninstallItemSubKeyName, installLocation);
+                            continue;
+                        }
+                        else
+                            LogFoundInstalledApplication(displayName, installLocation);
+
+                        var installerDirectoryPath = Path.Combine(installLocation, "__Installer");
+                        if (!Directory.Exists(installerDirectoryPath))
+                        {
+                            LogSkippingApplicationWithoutInstallerDirectory(displayName, installLocation);
+                            continue;
+                        }
+
+                        if (!File.Exists(Path.Combine(installerDirectoryPath, "installerdata.xml")))
+                        {
+                            _logger.LogWarning("Skipping installed application '{ApplicationName}' because {ApplicationInstallerPath} does not contain a file named 'installerdata.xml'.",
+                                displayName,
+                                installerDirectoryPath);
+                            continue;
+                        }
+
+                        try
+                        {
+                            var normalizedInstallPath = Path.GetFullPath(installLocation);
+                            _installPaths.Add(normalizedInstallPath);
+                            LogFoundEAGame(displayName, normalizedInstallPath);
+                        }
+                        catch (Exception ex)
+                        {
+                            _logger.LogError(ex,
+                                "Found EA game '{EAGameName}' but something went wrong while trying to track its install location of {EAGameInstallPath}.",
+                                displayName,
+                                installLocation);
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError(ex,
+                            "Found Windows application uninstall item registry sub key '{RegistrySubKeyName}' but something went wrong while trying to read it.",
+                            uninstallItemSubKeyName);
+                    }
+                }
             }
-
-            foreach (var uninstallItemSubKeyName in uninstallSubKey.GetSubKeyNames())
+            catch (Exception ex)
             {
-                using var uninstallItemSubKey = uninstallSubKey.OpenSubKey(uninstallItemSubKeyName);
-                if (uninstallItemSubKey is null)
-                {
-                    _logger.LogWarning("Could not open Windows application uninstall item registry sub key '{RegistrySubKeyName}'.",
-                        uninstallItemSubKeyName);
-                    continue;
-                }
-
-                var displayName = uninstallItemSubKey.GetValue("DisplayName")?.ToString();
-                var installLocation = uninstallItemSubKey.GetValue("InstallLocation")?.ToString();
-
-                if (string.IsNullOrEmpty(displayName) || string.IsNullOrEmpty(installLocation))
-                {
-                    LogSkippingRegistryKeyWithoutDisplayNameOrInstallLocation(uninstallItemSubKeyName);
-                    continue;
-                }
-
-                if (_installPaths.Contains(installLocation))
-                {
-                    LogSkippingRegistryKeyAlreadyTracked(uninstallItemSubKeyName, installLocation);
-                    continue;
-                }
-                else
-                    LogFoundInstalledApplication(displayName, installLocation);
-
-                var installerDirectoryPath = Path.Combine(installLocation, "__Installer");
-                if (!Directory.Exists(installerDirectoryPath))
-                {
-                    LogSkippingApplicationWithoutInstallerDirectory(displayName, installLocation);
-                    continue;
-                }
-
-                if (!File.Exists(Path.Combine(installerDirectoryPath, "installerdata.xml")))
-                {
-                    LogSkippingApplicationWithoutInstallerData(displayName, installerDirectoryPath);
-                    continue;
-                }
-
-                LogFoundEAGame(displayName, installLocation);
-
-                _installPaths.Add(installLocation);
+                _logger.LogError(ex, "Something went wrong while updating EA game install paths. Game detection may not work properly.");
+            }
+            finally
+            {
+                _lock.Release();
             }
         }
     }
 
     private async void RegistryWatcher_Changed(object? sender, EventArgs e)
     {
-        await _lock.WaitAsync();
-
-        try
-        {
-            UpdateInstallPaths();
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Something went wrong while updating EA game install paths.");
-        }
-        finally
-        {
-            _lock.Release();
-        }
+        await UpdateInstallPathsAsync();
     }
 
     private void RegistryWatcher_Errored(object? sender, EventArgs e)
@@ -298,9 +311,6 @@ internal partial class EALauncherProcessTrackingHandler(IProcessWatcher processW
 
     [LoggerMessage(Level = LogLevel.Debug, Message = "Skipping installed application '{ApplicationName}' because {ApplicationInstallPath} does not contain a directory named '__Installer'.")]
     public partial void LogSkippingApplicationWithoutInstallerDirectory(string applicationName, string applicationInstallPath);
-
-    [LoggerMessage(Level = LogLevel.Debug, Message = "Skipping installed application '{ApplicationName}' because {ApplicationInstallerPath} does not contain a file named 'installerdata.xml'.")]
-    public partial void LogSkippingApplicationWithoutInstallerData(string applicationName, string applicationInstallerPath);
 
     [LoggerMessage(Level = LogLevel.Information, Message = "Found EA game '{EAGameName}' installed at {EAGameInstallPath}.")]
     public partial void LogFoundEAGame(string eaGameName, string eaGameInstallPath);
