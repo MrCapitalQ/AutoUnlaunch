@@ -36,13 +36,9 @@ internal partial class EALauncherProcessTrackingHandler(IProcessWatcher processW
 
     protected override async Task StartCoreAsync(CancellationToken cancellationToken = default)
     {
-        _registry32Watcher.Changed -= RegistryWatcher_Changed;
         _registry32Watcher.Changed += RegistryWatcher_Changed;
-        _registry32Watcher.Errored -= RegistryWatcher_Errored;
         _registry32Watcher.Errored += RegistryWatcher_Errored;
-        _registry64Watcher.Changed -= RegistryWatcher_Changed;
         _registry64Watcher.Changed += RegistryWatcher_Changed;
-        _registry64Watcher.Errored -= RegistryWatcher_Errored;
         _registry64Watcher.Errored += RegistryWatcher_Errored;
 
         try

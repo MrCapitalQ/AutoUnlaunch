@@ -34,9 +34,7 @@ internal partial class GogLauncherProcessTrackingHandler(IProcessWatcher process
 
     protected override async Task StartCoreAsync(CancellationToken cancellationToken = default)
     {
-        _registryWatcher.Changed -= RegistryWatcher_Changed;
         _registryWatcher.Changed += RegistryWatcher_Changed;
-        _registryWatcher.Errored -= RegistryWatcher_Errored;
         _registryWatcher.Errored += RegistryWatcher_Errored;
 
         try
