@@ -17,12 +17,15 @@ internal partial class RegistryWatcher(RegistryHive hive,
     public event EventHandler<EventArgs>? Changed;
     public event EventHandler<EventArgs>? Errored;
 
+    private static readonly TimeSpan s_groupingPeriod = TimeSpan.FromSeconds(5);
+
     private readonly RegistryHive _hive = hive;
     private readonly string _path = path;
     private readonly RegistryView _view = view;
     private readonly ILogger<RegistryWatcher> _logger = logger;
     private (string Path, RegistryKey RegistryKey)? _currentlyWatched;
     private ManagementEventWatcher? _managementEventWatcher;
+    private CancellationTokenSource? _groupedOnChangedCts;
 
     public bool IsStarted => _currentlyWatched.HasValue;
 
@@ -102,6 +105,10 @@ internal partial class RegistryWatcher(RegistryHive hive,
 
         _currentlyWatched.Value.RegistryKey.Dispose();
         _currentlyWatched = null;
+
+        _groupedOnChangedCts?.Cancel();
+        _groupedOnChangedCts?.Dispose();
+        _groupedOnChangedCts = null;
     }
 
     private void Restart()
@@ -137,6 +144,35 @@ internal partial class RegistryWatcher(RegistryHive hive,
 
     private void RunNotifyLoop((string Path, RegistryKey RegistryKey) target)
     {
+        void OnChangedWithGrouping()
+        {
+            if (_groupedOnChangedCts is not null)
+            {
+                _logger.LogDebug("A registry event group already exists. This registry change will be part of the existing deferred Changed event.");
+                return;
+            }
+
+            _logger.LogDebug("Starting new registry changed event group and scheduling a deferred Changed event.");
+
+            _groupedOnChangedCts = new CancellationTokenSource();
+            _ = Task.Delay(s_groupingPeriod, _groupedOnChangedCts.Token).ContinueWith(x =>
+            {
+                try
+                {
+                    if (!x.IsCanceled)
+                    {
+                        _logger.LogDebug("Raising deferred Changed event.");
+                        OnChanged();
+                    }
+                }
+                finally
+                {
+                    _groupedOnChangedCts?.Dispose();
+                    _groupedOnChangedCts = null;
+                }
+            });
+        }
+
         LogWatchingRegistryKey(target.Path);
 
         var filter = REG_NOTIFY_FILTER.REG_NOTIFY_CHANGE_NAME | REG_NOTIFY_FILTER.REG_NOTIFY_CHANGE_LAST_SET;
@@ -161,7 +197,7 @@ internal partial class RegistryWatcher(RegistryHive hive,
             else if (string.Equals(_path, target.Path, StringComparison.OrdinalIgnoreCase))
             {
                 LogTargetRegistryTreeChanged(_path);
-                OnChanged();
+                OnChangedWithGrouping();
             }
         }
 
@@ -187,6 +223,7 @@ internal partial class RegistryWatcher(RegistryHive hive,
             FROM RegistryTreeChangeEvent
             WHERE Hive = 'HKEY_USERS'
             AND RootPath = '{currentUser.Value}\\\\{subKey.Replace(@"\", @"\\")}'
+            GROUP WITHIN {s_groupingPeriod.TotalSeconds}
             """;
         _managementEventWatcher = new ManagementEventWatcher(query);
         _managementEventWatcher.EventArrived += ManagementEventWatcher_EventArrived;
@@ -221,6 +258,7 @@ internal partial class RegistryWatcher(RegistryHive hive,
         else if (string.Equals(_path, _currentlyWatched.Value.Path, StringComparison.OrdinalIgnoreCase))
         {
             LogTargetRegistryTreeChanged(_path);
+            _logger.LogDebug("Raising Changed event.");
             OnChanged();
         }
     }
@@ -249,7 +287,7 @@ internal partial class RegistryWatcher(RegistryHive hive,
     [LoggerMessage(Level = LogLevel.Debug, Message = "Registry key {RegistryKeyPath} or one of its parent was created, deleted, or renamed. Restarting watcher.")]
     private partial void LogRestartDueToRegistryTreeChange(string registryKeyPath);
 
-    [LoggerMessage(Level = LogLevel.Debug, Message = "Registry key {RegistryKeyPath} or its sub tree changed. Raising changed event.")]
+    [LoggerMessage(Level = LogLevel.Debug, Message = "Registry key {RegistryKeyPath} or its sub tree changed.")]
     private partial void LogTargetRegistryTreeChanged(string registryKeyPath);
 
     [LoggerMessage(Level = LogLevel.Debug, Message = "Registry key {RegistryKeyPath} is no longer being watched. Exiting notify loop.")]
