@@ -11,16 +11,24 @@ namespace MrCapitalQ.AutoUnlaunch.Infrastructure.Launchers;
 internal partial class EpicLauncherProcessTrackingHandler(IProcessWatcher processWatcher,
     EpicSettingsService epicSettingsService,
     TimeProvider timeProvider,
+    RegistryWatcherFactory registryWatcherFactory,
     IProtocolLauncher protocolLauncher,
     ILogger<EpicLauncherProcessTrackingHandler> logger)
     : LauncherProcessTrackingHandler(processWatcher, epicSettingsService, timeProvider, logger)
 {
     private const string LauncherProcessName = "EpicGamesLauncher";
     private const string ManifestItemFilePattern = "*.item";
+    private const RegistryHive RegistryHive = RegistryHive.CurrentUser;
+    private const string RegistryRootPath = @"Software\Epic Games\EOS";
+    private const RegistryView RegistryView = RegistryView.Registry64;
+
     private static readonly Uri s_launchUri = new(LauncherUriProtocols.Epic);
 
     private readonly EpicSettingsService _epicSettingsService = epicSettingsService;
     private readonly TimeProvider _timeProvider = timeProvider;
+    private readonly RegistryWatcher _registryWatcher = registryWatcherFactory.Create(RegistryHive,
+        RegistryRootPath,
+        RegistryView);
     private readonly IProtocolLauncher _protocolLauncher = protocolLauncher;
     private readonly ILogger<EpicLauncherProcessTrackingHandler> _logger = logger;
     private readonly SemaphoreSlim _lock = new(1);
@@ -32,11 +40,23 @@ internal partial class EpicLauncherProcessTrackingHandler(IProcessWatcher proces
 
     protected override async Task StartCoreAsync(CancellationToken cancellationToken = default)
     {
+        _registryWatcher.Changed += RegistryWatcher_Changed;
+        _registryWatcher.Errored += RegistryWatcher_Errored;
+
+        try
+        {
+            _registryWatcher.Start();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to start registry watcher. Epic games list refresh may not function properly until handler is restarted.");
+        }
+
         try
         {
             if (GetManifestDirectoryPath() is not { Length: > 0 } manifestDirectoryPath)
             {
-                _logger.LogWarning("Failed to start file system watcher because failed to get Epic manifest directory path. Epic games list will not be refreshed until handler is restarted.");
+                _logger.LogWarning("Failed to start file system watcher because failed to get Epic manifest directory path. Epic games list refresh may not function properly until handler is restarted.");
             }
             else
             {
@@ -51,13 +71,17 @@ internal partial class EpicLauncherProcessTrackingHandler(IProcessWatcher proces
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "Failed to start file system watcher. Epic games list will not be refreshed until handler is restarted.");
+            _logger.LogWarning(ex, "Failed to start file system watcher. Epic games list refresh may not function properly until handler is restarted.");
         }
         await UpdateInstallPathsAsync(cancellationToken);
     }
 
     protected override Task StopCoreAsync(CancellationToken cancellationToken = default)
     {
+        _registryWatcher.Changed -= RegistryWatcher_Changed;
+        _registryWatcher.Errored -= RegistryWatcher_Errored;
+        _registryWatcher.Stop();
+
         if (_fileSystemWatcher is not null)
         {
             _fileSystemWatcher.EnableRaisingEvents = false;
@@ -153,12 +177,6 @@ internal partial class EpicLauncherProcessTrackingHandler(IProcessWatcher proces
         }
     }
 
-    // Note that a registry watcher isn't set up to re-run this when the registry key for the manifest directory path
-    // changes because change notifications do not get raised for the CURRENT_USER hive when registry write
-    // virtualization is not disabled. https://github.com/microsoft/WindowsAppSDK/issues/4075
-    //
-    // Disabling the registry write virtualization will be considered for later if it can pass Windows Store
-    // certification.
     private async Task UpdateInstallPathsAsync(CancellationToken cancellationToken = default)
     {
         await _lock.WaitAsync(cancellationToken);
@@ -227,8 +245,8 @@ internal partial class EpicLauncherProcessTrackingHandler(IProcessWatcher proces
     {
         try
         {
-            using var baseKey = RegistryKey.OpenBaseKey(RegistryHive.CurrentUser, RegistryView.Registry64);
-            using var eosKey = baseKey.OpenSubKey(@"Software\Epic Games\EOS");
+            using var baseKey = RegistryKey.OpenBaseKey(RegistryHive, RegistryView);
+            using var eosKey = baseKey.OpenSubKey(RegistryRootPath);
 
             var manifestsDirectoryPath = eosKey?.GetValue("ModSdkMetadataDir")?.ToString();
             if (!string.IsNullOrEmpty(manifestsDirectoryPath))
@@ -244,6 +262,16 @@ internal partial class EpicLauncherProcessTrackingHandler(IProcessWatcher proces
         return null;
     }
 
+    private async void RegistryWatcher_Changed(object? sender, EventArgs e)
+    {
+        await UpdateInstallPathsAsync();
+    }
+
+    private void RegistryWatcher_Errored(object? sender, EventArgs e)
+    {
+        _logger.LogWarning("Registry watcher encountered an unexpected error and has stopped. Epic games list refresh may not function properly until handler is restarted.");
+    }
+
     private async void FileSystemWatcher_Changed(object sender, FileSystemEventArgs e)
     {
         await UpdateInstallPathsAsync();
@@ -253,7 +281,7 @@ internal partial class EpicLauncherProcessTrackingHandler(IProcessWatcher proces
     {
         var ex = e.GetException();
         _logger.LogWarning(ex,
-            "File system watcher encountered an unexpected error and has stopped. Epic games list will not be refreshed until handler is restarted.");
+            "File system watcher encountered an unexpected error and has stopped. Epic games list refresh may not function properly until handler is restarted.");
     }
 
     [LoggerMessage(Level = LogLevel.Information, Message = "Found Epic game '{EpicGameName}' ({EpicGameAppLaunchId}) installed at {EpicGameInstallPath}.")]
