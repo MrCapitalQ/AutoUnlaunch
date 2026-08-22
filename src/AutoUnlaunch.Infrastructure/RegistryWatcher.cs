@@ -17,7 +17,8 @@ internal partial class RegistryWatcher(RegistryHive hive,
     public event EventHandler<EventArgs>? Changed;
     public event EventHandler<EventArgs>? Errored;
 
-    private static readonly TimeSpan s_groupingPeriod = TimeSpan.FromSeconds(5);
+    private const string SoftwarePrefix = "Software";
+    private static readonly TimeSpan s_groupingPeriod = TimeSpan.FromSeconds(1);
 
     private readonly RegistryHive _hive = hive;
     private readonly string _path = path;
@@ -211,12 +212,11 @@ internal partial class RegistryWatcher(RegistryHive hive,
 
         var subKey = _path.TrimStart('\\');
 
-        // Replicate redirection when accessing 32-bit registry in 64-bit apps.
-        const string softwarePrefix = "Software"; // TODO: Move to class level
+        // Replicate redirection when accessing 32-bit registry view in 64-bit apps.
         if (Environment.Is64BitOperatingSystem && _view is RegistryView.Registry32
-            && subKey.StartsWith(softwarePrefix, StringComparison.OrdinalIgnoreCase)
-            && !subKey.StartsWith(@$"{softwarePrefix}\Wow6432Node", StringComparison.OrdinalIgnoreCase))
-            subKey = subKey.Insert(softwarePrefix.Length, @"\Wow6432Node");
+            && subKey.StartsWith(SoftwarePrefix, StringComparison.OrdinalIgnoreCase)
+            && !subKey.StartsWith(@$"{SoftwarePrefix}\Wow6432Node", StringComparison.OrdinalIgnoreCase))
+            subKey = subKey.Insert(SoftwarePrefix.Length, @"\Wow6432Node");
 
         var query = $"""
             SELECT *

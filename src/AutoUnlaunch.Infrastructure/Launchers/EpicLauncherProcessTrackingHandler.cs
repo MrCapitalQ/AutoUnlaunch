@@ -38,7 +38,6 @@ internal partial class EpicLauncherProcessTrackingHandler(IProcessWatcher proces
 
     public override string LauncherName => "Epic Games";
 
-    // TODO: Update warning messages through
     protected override async Task StartCoreAsync(CancellationToken cancellationToken = default)
     {
         _registryWatcher.Changed += RegistryWatcher_Changed;
@@ -50,14 +49,14 @@ internal partial class EpicLauncherProcessTrackingHandler(IProcessWatcher proces
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "Failed to start registry watcher. Epic games list will not be refreshed until handler is restarted.");
+            _logger.LogWarning(ex, "Failed to start registry watcher. Epic games list refresh may not function properly until handler is restarted.");
         }
 
         try
         {
             if (GetManifestDirectoryPath() is not { Length: > 0 } manifestDirectoryPath)
             {
-                _logger.LogWarning("Failed to start file system watcher because failed to get Epic manifest directory path. Epic games list will not be refreshed until handler is restarted.");
+                _logger.LogWarning("Failed to start file system watcher because failed to get Epic manifest directory path. Epic games list refresh may not function properly until handler is restarted.");
             }
             else
             {
@@ -72,7 +71,7 @@ internal partial class EpicLauncherProcessTrackingHandler(IProcessWatcher proces
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "Failed to start file system watcher. Epic games list will not be refreshed until handler is restarted.");
+            _logger.LogWarning(ex, "Failed to start file system watcher. Epic games list refresh may not function properly until handler is restarted.");
         }
         await UpdateInstallPathsAsync(cancellationToken);
     }
@@ -270,7 +269,7 @@ internal partial class EpicLauncherProcessTrackingHandler(IProcessWatcher proces
 
     private void RegistryWatcher_Errored(object? sender, EventArgs e)
     {
-        _logger.LogWarning("Registry watcher encountered an unexpected error and has stopped. Epic games list will not be refreshed until handler is restarted.");
+        _logger.LogWarning("Registry watcher encountered an unexpected error and has stopped. Epic games list refresh may not function properly until handler is restarted.");
     }
 
     private async void FileSystemWatcher_Changed(object sender, FileSystemEventArgs e)
@@ -282,7 +281,7 @@ internal partial class EpicLauncherProcessTrackingHandler(IProcessWatcher proces
     {
         var ex = e.GetException();
         _logger.LogWarning(ex,
-            "File system watcher encountered an unexpected error and has stopped. Epic games list will not be refreshed until handler is restarted.");
+            "File system watcher encountered an unexpected error and has stopped. Epic games list refresh may not function properly until handler is restarted.");
     }
 
     [LoggerMessage(Level = LogLevel.Information, Message = "Found Epic game '{EpicGameName}' ({EpicGameAppLaunchId}) installed at {EpicGameInstallPath}.")]
