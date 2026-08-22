@@ -8,13 +8,13 @@ using System.Text.Json.Serialization;
 
 namespace MrCapitalQ.AutoUnlaunch.Infrastructure.Launchers;
 
-internal partial class EpicLauncherProcessTrackingHandler(IProcessWatcher processWatcher,
+internal partial class EpicLauncherHandler(IProcessWatcher processWatcher,
     EpicSettingsService epicSettingsService,
     TimeProvider timeProvider,
     RegistryWatcherFactory registryWatcherFactory,
     IProtocolLauncher protocolLauncher,
-    ILogger<EpicLauncherProcessTrackingHandler> logger)
-    : LauncherProcessTrackingHandler(processWatcher, epicSettingsService, timeProvider, logger)
+    ILogger<EpicLauncherHandler> logger)
+    : LauncherProcessTrackingHandler(processWatcher, epicSettingsService, timeProvider, logger), IAsyncDisposable
 {
     private const string LauncherProcessName = "EpicGamesLauncher";
     private const string ManifestItemFilePattern = "*.item";
@@ -30,7 +30,7 @@ internal partial class EpicLauncherProcessTrackingHandler(IProcessWatcher proces
         RegistryRootPath,
         RegistryView);
     private readonly IProtocolLauncher _protocolLauncher = protocolLauncher;
-    private readonly ILogger<EpicLauncherProcessTrackingHandler> _logger = logger;
+    private readonly ILogger<EpicLauncherHandler> _logger = logger;
     private readonly SemaphoreSlim _lock = new(1);
     private readonly Dictionary<string, string> _installPaths = [];
 
@@ -38,7 +38,7 @@ internal partial class EpicLauncherProcessTrackingHandler(IProcessWatcher proces
 
     public override string LauncherName => "Epic Games";
 
-    protected override async Task StartCoreAsync(CancellationToken cancellationToken = default)
+    protected override async Task OnStartingAsync(CancellationToken cancellationToken = default)
     {
         _registryWatcher.Changed += RegistryWatcher_Changed;
         _registryWatcher.Errored += RegistryWatcher_Errored;
@@ -73,10 +73,12 @@ internal partial class EpicLauncherProcessTrackingHandler(IProcessWatcher proces
         {
             _logger.LogWarning(ex, "Failed to start file system watcher. Epic games list refresh may not function properly until handler is restarted.");
         }
+
         await UpdateInstallPathsAsync(cancellationToken);
+        await base.OnStartingAsync(cancellationToken);
     }
 
-    protected override Task StopCoreAsync(CancellationToken cancellationToken = default)
+    protected override Task OnStoppingAsync(CancellationToken cancellationToken = default)
     {
         _registryWatcher.Changed -= RegistryWatcher_Changed;
         _registryWatcher.Errored -= RegistryWatcher_Errored;
@@ -93,7 +95,8 @@ internal partial class EpicLauncherProcessTrackingHandler(IProcessWatcher proces
             _fileSystemWatcher.Dispose();
             _fileSystemWatcher = null;
         }
-        return Task.CompletedTask;
+
+        return base.OnStoppingAsync(cancellationToken);
     }
 
     protected override Task<bool> IsLauncherRunningAsync(CancellationToken cancellationToken)
@@ -200,7 +203,7 @@ internal partial class EpicLauncherProcessTrackingHandler(IProcessWatcher proces
                 try
                 {
                     using var stream = new FileStream(manifestPath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
-                    if (JsonSerializer.Deserialize(stream, EpicManifestServiceSerializerContext.Default.EpicItemManifest) is not { } manifest
+                    if (JsonSerializer.Deserialize(stream, EpicLauncherHandlerSerializerContext.Default.EpicItemManifest) is not { } manifest
                         || manifest.InstallLocation is not { Length: > 0 })
                     {
                         _logger.LogWarning("Skipping Epic game manifest at {EpicManifestPath} because it does not have an install location value.",
@@ -284,12 +287,19 @@ internal partial class EpicLauncherProcessTrackingHandler(IProcessWatcher proces
             "File system watcher encountered an unexpected error and has stopped. Epic games list refresh may not function properly until handler is restarted.");
     }
 
+    public async ValueTask DisposeAsync()
+    {
+        await StopAsync();
+        _registryWatcher.Dispose();
+        _lock.Dispose();
+    }
+
     [LoggerMessage(Level = LogLevel.Information, Message = "Found Epic game '{EpicGameName}' ({EpicGameAppLaunchId}) installed at {EpicGameInstallPath}.")]
     public partial void LogFoundEpicGame(string epicGameName, string epicGameAppLaunchId, string epicGameInstallPath);
 
     [JsonSourceGenerationOptions(PropertyNameCaseInsensitive = true)]
     [JsonSerializable(typeof(EpicItemManifest))]
-    private partial class EpicManifestServiceSerializerContext : JsonSerializerContext { }
+    private partial class EpicLauncherHandlerSerializerContext : JsonSerializerContext { }
 
     private record EpicItemManifest
     {

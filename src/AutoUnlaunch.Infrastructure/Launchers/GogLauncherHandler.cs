@@ -7,32 +7,31 @@ using System.Diagnostics;
 
 namespace MrCapitalQ.AutoUnlaunch.Infrastructure.Launchers;
 
-internal partial class GogLauncherProcessTrackingHandler(IProcessWatcher processWatcher,
+internal partial class GogLauncherHandler(IProcessWatcher processWatcher,
     GogSettingsService gogSettingsService,
     TimeProvider timeProvider,
     RegistryWatcherFactory registryWatcherFactory,
     ProcessWindowService processWindowService,
-    ILogger<GogLauncherProcessTrackingHandler> logger)
+    ILogger<GogLauncherHandler> logger)
     : LauncherProcessTrackingHandler(processWatcher, gogSettingsService, timeProvider, logger), IAsyncDisposable
 {
     private const string LauncherProcessName = "GalaxyClient";
+    private const RegistryHive RegistryHive = RegistryHive.LocalMachine;
     private const string RegistryRootPath = @"SOFTWARE\GOG.com";
-
-    private static readonly RegistryHive s_registryHive = RegistryHive.LocalMachine;
-    private static readonly RegistryView s_registryView = RegistryView.Registry32;
+    private const RegistryView RegistryView = RegistryView.Registry32;
 
     private readonly GogSettingsService _gogSettingsService = gogSettingsService;
-    private readonly RegistryWatcher _registryWatcher = registryWatcherFactory.Create(s_registryHive,
+    private readonly RegistryWatcher _registryWatcher = registryWatcherFactory.Create(RegistryHive,
         @$"{RegistryRootPath}\Games",
-        s_registryView);
+        RegistryView);
     private readonly ProcessWindowService _processWindowService = processWindowService;
-    private readonly ILogger<GogLauncherProcessTrackingHandler> _logger = logger;
+    private readonly ILogger<GogLauncherHandler> _logger = logger;
     private readonly SemaphoreSlim _lock = new(1);
     private readonly Dictionary<long, string> _installPaths = [];
 
     public override string LauncherName => "GOG Galaxy";
 
-    protected override async Task StartCoreAsync(CancellationToken cancellationToken = default)
+    protected override async Task OnStartingAsync(CancellationToken cancellationToken = default)
     {
         _registryWatcher.Changed += RegistryWatcher_Changed;
         _registryWatcher.Errored += RegistryWatcher_Errored;
@@ -47,15 +46,16 @@ internal partial class GogLauncherProcessTrackingHandler(IProcessWatcher process
         }
 
         await UpdateInstallPathsAsync(cancellationToken);
+        await base.OnStartingAsync(cancellationToken);
     }
 
-    protected override Task StopCoreAsync(CancellationToken cancellationToken = default)
+    protected override Task OnStoppingAsync(CancellationToken cancellationToken = default)
     {
         _registryWatcher.Changed -= RegistryWatcher_Changed;
         _registryWatcher.Errored -= RegistryWatcher_Errored;
         _registryWatcher.Stop();
 
-        return Task.CompletedTask;
+        return base.OnStoppingAsync(cancellationToken);
     }
 
     protected override Task<bool> IsLauncherRunningAsync(CancellationToken cancellationToken)
@@ -130,7 +130,7 @@ internal partial class GogLauncherProcessTrackingHandler(IProcessWatcher process
 
         try
         {
-            using var baseKey = RegistryKey.OpenBaseKey(s_registryHive, s_registryView);
+            using var baseKey = RegistryKey.OpenBaseKey(RegistryHive, RegistryView);
             using var gamesSubKey = baseKey.OpenSubKey($@"{RegistryRootPath}\Games");
             if (gamesSubKey is null)
             {
@@ -200,7 +200,7 @@ internal partial class GogLauncherProcessTrackingHandler(IProcessWatcher process
 
     private async Task RequestLauncherShutdown(CancellationToken cancellationToken)
     {
-        using var baseKey = RegistryKey.OpenBaseKey(s_registryHive, s_registryView);
+        using var baseKey = RegistryKey.OpenBaseKey(RegistryHive, RegistryView);
 
         using var pathsKey = baseKey.OpenSubKey($@"{RegistryRootPath}\GalaxyClient\paths");
         var launcherPath = pathsKey?.GetValue("client")?.ToString();

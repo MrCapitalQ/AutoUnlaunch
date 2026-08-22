@@ -7,34 +7,34 @@ using MrCapitalQ.AutoUnlaunch.Launchers.Handlers;
 
 namespace MrCapitalQ.AutoUnlaunch.Infrastructure.Launchers;
 
-internal partial class EALauncherProcessTrackingHandler(IProcessWatcher processWatcher,
+internal partial class EALauncherHandler(IProcessWatcher processWatcher,
     EASettingsService eaSettingsService,
     TimeProvider timeProvider,
     RegistryWatcherFactory registryWatcherFactory,
-    ILogger<EALauncherProcessTrackingHandler> logger)
+    ILogger<EALauncherHandler> logger)
     : LauncherProcessTrackingHandler(processWatcher, eaSettingsService, timeProvider, logger), IAsyncDisposable
 {
     private const string LauncherProcessName = "EADesktop";
+    private const RegistryHive RegistryHive = RegistryHive.LocalMachine;
     private const string RegistryRootPath = @"Software\Microsoft\Windows\CurrentVersion\Uninstall";
 
-    private static readonly RegistryHive s_registryHive = RegistryHive.LocalMachine;
     private static readonly HashSet<RegistryView> s_registryViews = [RegistryView.Registry32, RegistryView.Registry64];
 
     private readonly EASettingsService _eaSettingsService = eaSettingsService;
     private readonly TimeProvider _timeProvider = timeProvider;
-    private readonly RegistryWatcher _registry32Watcher = registryWatcherFactory.Create(s_registryHive,
+    private readonly RegistryWatcher _registry32Watcher = registryWatcherFactory.Create(RegistryHive,
         RegistryRootPath,
         RegistryView.Registry32);
-    private readonly RegistryWatcher _registry64Watcher = registryWatcherFactory.Create(s_registryHive,
+    private readonly RegistryWatcher _registry64Watcher = registryWatcherFactory.Create(RegistryHive,
         RegistryRootPath,
         RegistryView.Registry64);
-    private readonly ILogger<EALauncherProcessTrackingHandler> _logger = logger;
+    private readonly ILogger<EALauncherHandler> _logger = logger;
     private readonly SemaphoreSlim _lock = new(1);
     private readonly HashSet<string> _installPaths = new(StringComparer.OrdinalIgnoreCase);
 
     public override string LauncherName => "EA";
 
-    protected override async Task StartCoreAsync(CancellationToken cancellationToken = default)
+    protected override async Task OnStartingAsync(CancellationToken cancellationToken = default)
     {
         _registry32Watcher.Changed += RegistryWatcher_Changed;
         _registry32Watcher.Errored += RegistryWatcher_Errored;
@@ -60,9 +60,10 @@ internal partial class EALauncherProcessTrackingHandler(IProcessWatcher processW
         }
 
         await UpdateInstallPathsAsync(cancellationToken);
+        await base.OnStartingAsync(cancellationToken);
     }
 
-    protected override Task StopCoreAsync(CancellationToken cancellationToken = default)
+    protected override Task OnStoppingAsync(CancellationToken cancellationToken = default)
     {
         _registry32Watcher.Changed -= RegistryWatcher_Changed;
         _registry32Watcher.Errored -= RegistryWatcher_Errored;
@@ -72,7 +73,7 @@ internal partial class EALauncherProcessTrackingHandler(IProcessWatcher processW
         _registry32Watcher.Stop();
         _registry64Watcher.Stop();
 
-        return Task.CompletedTask;
+        return base.OnStoppingAsync(cancellationToken);
     }
 
     protected override Task<bool> IsLauncherRunningAsync(CancellationToken cancellationToken)
@@ -187,7 +188,7 @@ internal partial class EALauncherProcessTrackingHandler(IProcessWatcher processW
         {
             try
             {
-                using var baseKey = RegistryKey.OpenBaseKey(s_registryHive, view);
+                using var baseKey = RegistryKey.OpenBaseKey(RegistryHive, view);
                 using var uninstallSubKey = baseKey.OpenSubKey(RegistryRootPath);
                 if (uninstallSubKey is null)
                 {

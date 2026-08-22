@@ -41,12 +41,19 @@ public static class ServiceCollectionExtensions
         return services;
     }
 
+    public static IServiceCollection AddProcessWindowService(this IServiceCollection services)
+    {
+        services.TryAddTransient<ProcessWindowService>();
+        return services;
+    }
+
     public static IServiceCollection AddSteam(this IServiceCollection services)
     {
-        services.AddSingleton<ILauncherPollingHandler, SteamLauncherPollingHandler>();
-        services.TryAddTransient<SteamSettingsService>();
-        services.TryAddTransient<ProcessWindowService>();
+        services.AddRegistryWatcher();
         services.AddProtocolLauncher();
+        services.AddProcessWindowService();
+        services.AddSingleton<ILauncherHandler, SteamLauncherHandler>();
+        services.TryAddTransient<SteamSettingsService>();
         return services;
     }
 
@@ -54,7 +61,7 @@ public static class ServiceCollectionExtensions
     {
         services.AddProcessWatcher();
         services.AddRegistryWatcher();
-        services.AddSingleton<ILauncherTrackingHandler, EALauncherProcessTrackingHandler>();
+        services.AddSingleton<ILauncherHandler, EALauncherHandler>();
         services.TryAddTransient<EASettingsService>();
         return services;
     }
@@ -63,17 +70,18 @@ public static class ServiceCollectionExtensions
     {
         services.AddProcessWatcher();
         services.AddRegistryWatcher();
-        services.AddSingleton<ILauncherTrackingHandler, GogLauncherProcessTrackingHandler>();
+        services.AddProcessWindowService();
+        services.AddSingleton<ILauncherHandler, GogLauncherHandler>();
         services.TryAddTransient<GogSettingsService>();
-        services.TryAddTransient<ProcessWindowService>();
         return services;
     }
 
     public static IServiceCollection AddEpic(this IServiceCollection services)
     {
         services.AddProcessWatcher();
+        services.AddRegistryWatcher();
         services.AddProtocolLauncher();
-        services.AddSingleton<ILauncherTrackingHandler, EpicLauncherProcessTrackingHandler>();
+        services.AddSingleton<ILauncherHandler, EpicLauncherHandler>();
         services.TryAddTransient<EpicSettingsService>();
         return services;
     }

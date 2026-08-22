@@ -6,33 +6,65 @@ using MrCapitalQ.AutoUnlaunch.Core.Launchers;
 
 namespace MrCapitalQ.AutoUnlaunch.Infrastructure.Launchers;
 
-internal class SteamLauncherPollingHandler(TimeProvider timeProvider,
-    SteamSettingsService steamSettingsService,
+internal partial class SteamLauncherHandler(SteamSettingsService steamSettingsService,
+    TimeProvider timeProvider,
+    RegistryWatcherFactory registryWatcherFactory,
     IProtocolLauncher protocolLauncher,
     ProcessWindowService processWindowService,
-    ILogger<SteamLauncherPollingHandler> logger)
-    : LauncherPollingHandler(steamSettingsService, timeProvider, logger)
+    ILogger<SteamLauncherHandler> logger)
+    : LauncherBaseHandler(steamSettingsService, timeProvider, logger), IAsyncDisposable
 {
     private const string LauncherProcessName = "steam";
     private const string WebHelperProcessName = "steamwebhelper";
+    private const RegistryHive RegistryHive = RegistryHive.CurrentUser;
+    private const string RegistryRootPath = @"Software\Valve\Steam";
+    private const RegistryView RegistryView = RegistryView.Registry64;
+
     private static readonly Uri s_exitUri = new($"{LauncherUriProtocols.Steam}exit");
 
     private readonly SteamSettingsService _steamSettingsService = steamSettingsService;
+    private readonly RegistryWatcher _registryWatcher = registryWatcherFactory.Create(RegistryHive,
+        RegistryRootPath,
+        RegistryView);
     private readonly IProtocolLauncher _protocolLauncher = protocolLauncher;
     private readonly ProcessWindowService _processWindowService = processWindowService;
+    private readonly ILogger<SteamLauncherHandler> _logger = logger;
 
-    protected override string LauncherName => "Steam";
+    private int _activeSteamAppId = 0;
+
+    public override string LauncherName => "Steam";
+
+    protected override async Task OnStartingAsync(CancellationToken cancellationToken = default)
+    {
+        _registryWatcher.Changed += RegistryWatcher_Changed;
+        _registryWatcher.Errored += RegistryWatcher_Errored;
+
+        try
+        {
+            _registryWatcher.Start();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to start registry watcher. Steam activity detection will not work until handler is restarted.");
+        }
+
+        await CheckCurrentRunningSteamAppAsync(cancellationToken);
+        await base.OnStartingAsync(cancellationToken);
+    }
+
+    protected override Task OnStoppingAsync(CancellationToken cancellationToken = default)
+    {
+        _registryWatcher.Changed -= RegistryWatcher_Changed;
+        _registryWatcher.Errored -= RegistryWatcher_Errored;
+        _registryWatcher.Stop();
+
+        return base.OnStoppingAsync(cancellationToken);
+    }
 
     protected override Task<bool> IsLauncherRunningAsync(CancellationToken cancellationToken)
     {
         using var launcherProcessesResult = ProcessHelper.GetSessionProcessesByName(LauncherProcessName);
         return Task.FromResult(launcherProcessesResult.Items.Any());
-    }
-
-    protected override Task<bool> IsLauncherActivityRunningAsync(CancellationToken cancellationToken)
-    {
-        var activeSteamAppId = Registry.GetValue(@"HKEY_CURRENT_USER\Software\Valve\Steam", "RunningAppID", 0) as int? ?? 0;
-        return Task.FromResult(activeSteamAppId != 0);
     }
 
     protected override async Task StopLauncherAsync(CancellationToken cancellationToken)
@@ -97,6 +129,33 @@ internal class SteamLauncherPollingHandler(TimeProvider timeProvider,
         await CloseMainWindowsAsync();
     }
 
+    private async Task CheckCurrentRunningSteamAppAsync(CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var oldActiveSteamAppId = _activeSteamAppId;
+
+            using var baseKey = RegistryKey.OpenBaseKey(RegistryHive, RegistryView);
+            using var steamKey = baseKey.OpenSubKey(RegistryRootPath);
+            _activeSteamAppId = steamKey?.GetValue("RunningAppID", 0) as int? ?? 0;
+
+            if (oldActiveSteamAppId != _activeSteamAppId)
+                LogRunningSteamAppChanged(_activeSteamAppId);
+
+            if (oldActiveSteamAppId == 0 && _activeSteamAppId != 0)
+            {
+                LogActivityStarted(LauncherName, _activeSteamAppId);
+                await SetLauncherActivityStartedAsync(cancellationToken);
+            }
+            else if (oldActiveSteamAppId != 0 && _activeSteamAppId == 0)
+                await SetLauncherActivityEndedAsync(cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Something went wrong while checking for the currently running Steam app.");
+        }
+    }
+
     private async Task CloseMainWindowsAsync()
     {
         // The Steam UI may show different windows (commonly splash screens) as its main window so close the
@@ -122,8 +181,26 @@ internal class SteamLauncherPollingHandler(TimeProvider timeProvider,
 
         using var webHelperProcessesResult = ProcessHelper.GetSessionProcessesByName(WebHelperProcessName);
         return webHelperProcessesResult.Items
-            .Where(x => x.GetParentProcessId() == launcherProcess.Id)
-            .FirstOrDefault()
+            .FirstOrDefault(x => x.GetParentProcessId() == launcherProcess.Id)
             ?.Id;
     }
+
+    private async void RegistryWatcher_Changed(object? sender, EventArgs e) => await CheckCurrentRunningSteamAppAsync();
+
+    private void RegistryWatcher_Errored(object? sender, EventArgs e)
+    {
+        _logger.LogWarning("Registry watcher encountered an unexpected error and has stopped. Steam activity detection will not work until handler is restarted.");
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        await StopAsync();
+        _registryWatcher.Dispose();
+    }
+
+    [LoggerMessage(Level = LogLevel.Debug, Message = "Running Steam app ID changed to {SteamAppId}.")]
+    private partial void LogRunningSteamAppChanged(long steamAppId);
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "An activity for launcher {LauncherName} started with Steam app ID {SteamAppId}.")]
+    private partial void LogActivityStarted(string launcherName, long steamAppId);
 }
