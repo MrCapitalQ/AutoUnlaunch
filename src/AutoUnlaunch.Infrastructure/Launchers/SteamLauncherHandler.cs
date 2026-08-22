@@ -6,13 +6,13 @@ using MrCapitalQ.AutoUnlaunch.Core.Launchers;
 
 namespace MrCapitalQ.AutoUnlaunch.Infrastructure.Launchers;
 
-internal partial class SteamLauncherTrackingHandler(SteamSettingsService steamSettingsService,
+internal partial class SteamLauncherHandler(SteamSettingsService steamSettingsService,
     TimeProvider timeProvider,
     RegistryWatcherFactory registryWatcherFactory,
     IProtocolLauncher protocolLauncher,
     ProcessWindowService processWindowService,
-    ILogger<SteamLauncherTrackingHandler> logger)
-    : LauncherTrackingHandler(steamSettingsService, timeProvider, logger)
+    ILogger<SteamLauncherHandler> logger)
+    : LauncherBaseHandler(steamSettingsService, timeProvider, logger), IAsyncDisposable
 {
     private const string LauncherProcessName = "steam";
     private const string WebHelperProcessName = "steamwebhelper";
@@ -28,7 +28,7 @@ internal partial class SteamLauncherTrackingHandler(SteamSettingsService steamSe
         RegistryView);
     private readonly IProtocolLauncher _protocolLauncher = protocolLauncher;
     private readonly ProcessWindowService _processWindowService = processWindowService;
-    private readonly ILogger<SteamLauncherTrackingHandler> _logger = logger;
+    private readonly ILogger<SteamLauncherHandler> _logger = logger;
 
     private int _activeSteamAppId = 0;
 
@@ -190,6 +190,12 @@ internal partial class SteamLauncherTrackingHandler(SteamSettingsService steamSe
     private void RegistryWatcher_Errored(object? sender, EventArgs e)
     {
         _logger.LogWarning("Registry watcher encountered an unexpected error and has stopped. Steam activity detection will not work until handler is restarted.");
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        await StopAsync();
+        _registryWatcher.Dispose();
     }
 
     [LoggerMessage(Level = LogLevel.Debug, Message = "Running Steam app ID changed to {SteamAppId}.")]

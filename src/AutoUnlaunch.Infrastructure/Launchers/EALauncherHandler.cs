@@ -7,11 +7,11 @@ using MrCapitalQ.AutoUnlaunch.Launchers.Handlers;
 
 namespace MrCapitalQ.AutoUnlaunch.Infrastructure.Launchers;
 
-internal partial class EALauncherProcessTrackingHandler(IProcessWatcher processWatcher,
+internal partial class EALauncherHandler(IProcessWatcher processWatcher,
     EASettingsService eaSettingsService,
     TimeProvider timeProvider,
     RegistryWatcherFactory registryWatcherFactory,
-    ILogger<EALauncherProcessTrackingHandler> logger)
+    ILogger<EALauncherHandler> logger)
     : LauncherProcessTrackingHandler(processWatcher, eaSettingsService, timeProvider, logger), IAsyncDisposable
 {
     private const string LauncherProcessName = "EADesktop";
@@ -28,7 +28,7 @@ internal partial class EALauncherProcessTrackingHandler(IProcessWatcher processW
     private readonly RegistryWatcher _registry64Watcher = registryWatcherFactory.Create(RegistryHive,
         RegistryRootPath,
         RegistryView.Registry64);
-    private readonly ILogger<EALauncherProcessTrackingHandler> _logger = logger;
+    private readonly ILogger<EALauncherHandler> _logger = logger;
     private readonly SemaphoreSlim _lock = new(1);
     private readonly HashSet<string> _installPaths = new(StringComparer.OrdinalIgnoreCase);
 

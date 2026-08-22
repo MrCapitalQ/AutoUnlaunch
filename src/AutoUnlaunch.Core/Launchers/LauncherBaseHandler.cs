@@ -3,10 +3,10 @@ using MrCapitalQ.AutoUnlaunch.Core.AppData;
 
 namespace MrCapitalQ.AutoUnlaunch.Core.Launchers;
 
-public abstract partial class LauncherTrackingHandler(LauncherSettingsService launcherSettingsService,
+public abstract partial class LauncherBaseHandler(LauncherSettingsService launcherSettingsService,
     TimeProvider timeProvider,
     ILogger logger)
-    : ILauncherTrackingHandler
+    : ILauncherHandler
 {
     private readonly LauncherSettingsService _launcherSettingsService = launcherSettingsService;
     private readonly TimeProvider _timeProvider = timeProvider;

@@ -7,12 +7,12 @@ using System.Diagnostics;
 
 namespace MrCapitalQ.AutoUnlaunch.Infrastructure.Launchers;
 
-internal partial class GogLauncherProcessTrackingHandler(IProcessWatcher processWatcher,
+internal partial class GogLauncherHandler(IProcessWatcher processWatcher,
     GogSettingsService gogSettingsService,
     TimeProvider timeProvider,
     RegistryWatcherFactory registryWatcherFactory,
     ProcessWindowService processWindowService,
-    ILogger<GogLauncherProcessTrackingHandler> logger)
+    ILogger<GogLauncherHandler> logger)
     : LauncherProcessTrackingHandler(processWatcher, gogSettingsService, timeProvider, logger), IAsyncDisposable
 {
     private const string LauncherProcessName = "GalaxyClient";
@@ -25,7 +25,7 @@ internal partial class GogLauncherProcessTrackingHandler(IProcessWatcher process
         @$"{RegistryRootPath}\Games",
         RegistryView);
     private readonly ProcessWindowService _processWindowService = processWindowService;
-    private readonly ILogger<GogLauncherProcessTrackingHandler> _logger = logger;
+    private readonly ILogger<GogLauncherHandler> _logger = logger;
     private readonly SemaphoreSlim _lock = new(1);
     private readonly Dictionary<long, string> _installPaths = [];
 

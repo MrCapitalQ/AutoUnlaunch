@@ -52,7 +52,7 @@ public static class ServiceCollectionExtensions
         services.AddRegistryWatcher();
         services.AddProtocolLauncher();
         services.AddProcessWindowService();
-        services.AddSingleton<ILauncherTrackingHandler, SteamLauncherTrackingHandler>();
+        services.AddSingleton<ILauncherHandler, SteamLauncherHandler>();
         services.TryAddTransient<SteamSettingsService>();
         return services;
     }
@@ -61,7 +61,7 @@ public static class ServiceCollectionExtensions
     {
         services.AddProcessWatcher();
         services.AddRegistryWatcher();
-        services.AddSingleton<ILauncherTrackingHandler, EALauncherProcessTrackingHandler>();
+        services.AddSingleton<ILauncherHandler, EALauncherHandler>();
         services.TryAddTransient<EASettingsService>();
         return services;
     }
@@ -71,7 +71,7 @@ public static class ServiceCollectionExtensions
         services.AddProcessWatcher();
         services.AddRegistryWatcher();
         services.AddProcessWindowService();
-        services.AddSingleton<ILauncherTrackingHandler, GogLauncherProcessTrackingHandler>();
+        services.AddSingleton<ILauncherHandler, GogLauncherHandler>();
         services.TryAddTransient<GogSettingsService>();
         return services;
     }
@@ -80,7 +80,7 @@ public static class ServiceCollectionExtensions
     {
         services.AddProcessWatcher();
         services.AddProtocolLauncher();
-        services.AddSingleton<ILauncherTrackingHandler, EpicLauncherProcessTrackingHandler>();
+        services.AddSingleton<ILauncherHandler, EpicLauncherHandler>();
         services.TryAddTransient<EpicSettingsService>();
         return services;
     }

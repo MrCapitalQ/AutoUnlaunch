@@ -7,7 +7,7 @@ namespace MrCapitalQ.AutoUnlaunch.Core.Launchers;
 public abstract partial class LauncherProcessTrackingHandler(IProcessWatcher processWatcher,
     LauncherSettingsService launcherSettingsService,
     TimeProvider timeProvider,
-    ILogger logger) : LauncherTrackingHandler(launcherSettingsService, timeProvider, logger)
+    ILogger logger) : LauncherBaseHandler(launcherSettingsService, timeProvider, logger)
 {
     private readonly IProcessWatcher _processWatcher = processWatcher;
     private readonly ILogger _logger = logger;

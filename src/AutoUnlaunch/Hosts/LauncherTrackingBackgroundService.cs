@@ -8,11 +8,11 @@ using System.Diagnostics.CodeAnalysis;
 namespace MrCapitalQ.AutoUnlaunch.Hosts;
 
 [ExcludeFromCodeCoverage]
-internal partial class LauncherTrackingBackgroundService(IEnumerable<ILauncherTrackingHandler> handlers,
+internal partial class LauncherTrackingBackgroundService(IEnumerable<ILauncherHandler> handlers,
     IMessenger messenger,
     ILogger<LauncherTrackingBackgroundService> logger) : BackgroundService
 {
-    private readonly ISet<ILauncherTrackingHandler> _handlers = handlers.ToHashSet();
+    private readonly ISet<ILauncherHandler> _handlers = handlers.ToHashSet();
     private readonly IMessenger _messenger = messenger;
     private readonly ILogger<LauncherTrackingBackgroundService> _logger = logger;
 
