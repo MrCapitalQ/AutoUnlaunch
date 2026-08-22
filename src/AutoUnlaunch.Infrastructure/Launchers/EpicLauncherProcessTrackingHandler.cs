@@ -38,7 +38,7 @@ internal partial class EpicLauncherProcessTrackingHandler(IProcessWatcher proces
 
     public override string LauncherName => "Epic Games";
 
-    protected override async Task StartCoreAsync(CancellationToken cancellationToken = default)
+    protected override async Task OnStartingAsync(CancellationToken cancellationToken = default)
     {
         _registryWatcher.Changed += RegistryWatcher_Changed;
         _registryWatcher.Errored += RegistryWatcher_Errored;
@@ -73,10 +73,12 @@ internal partial class EpicLauncherProcessTrackingHandler(IProcessWatcher proces
         {
             _logger.LogWarning(ex, "Failed to start file system watcher. Epic games list refresh may not function properly until handler is restarted.");
         }
+
         await UpdateInstallPathsAsync(cancellationToken);
+        await base.OnStartingAsync(cancellationToken);
     }
 
-    protected override Task StopCoreAsync(CancellationToken cancellationToken = default)
+    protected override Task OnStoppingAsync(CancellationToken cancellationToken = default)
     {
         _registryWatcher.Changed -= RegistryWatcher_Changed;
         _registryWatcher.Errored -= RegistryWatcher_Errored;
@@ -93,7 +95,8 @@ internal partial class EpicLauncherProcessTrackingHandler(IProcessWatcher proces
             _fileSystemWatcher.Dispose();
             _fileSystemWatcher = null;
         }
-        return Task.CompletedTask;
+
+        return base.OnStoppingAsync(cancellationToken);
     }
 
     protected override Task<bool> IsLauncherRunningAsync(CancellationToken cancellationToken)

@@ -41,12 +41,19 @@ public static class ServiceCollectionExtensions
         return services;
     }
 
+    public static IServiceCollection AddProcessWindowService(this IServiceCollection services)
+    {
+        services.TryAddTransient<ProcessWindowService>();
+        return services;
+    }
+
     public static IServiceCollection AddSteam(this IServiceCollection services)
     {
-        services.AddSingleton<ILauncherPollingHandler, SteamLauncherPollingHandler>();
-        services.TryAddTransient<SteamSettingsService>();
-        services.TryAddTransient<ProcessWindowService>();
+        services.AddRegistryWatcher();
         services.AddProtocolLauncher();
+        services.AddProcessWindowService();
+        services.AddSingleton<ILauncherTrackingHandler, SteamLauncherTrackingHandler>();
+        services.TryAddTransient<SteamSettingsService>();
         return services;
     }
 
@@ -63,9 +70,9 @@ public static class ServiceCollectionExtensions
     {
         services.AddProcessWatcher();
         services.AddRegistryWatcher();
+        services.AddProcessWindowService();
         services.AddSingleton<ILauncherTrackingHandler, GogLauncherProcessTrackingHandler>();
         services.TryAddTransient<GogSettingsService>();
-        services.TryAddTransient<ProcessWindowService>();
         return services;
     }
 

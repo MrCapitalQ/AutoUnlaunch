@@ -19,6 +19,9 @@ internal partial class ProcessWatcher : IProcessWatcher
         var processStartWatcher = new ManagementEventWatcher(new WqlEventQuery("SELECT * FROM __InstanceCreationEvent WITHIN 1 WHERE TargetInstance ISA 'Win32_Process'"));
         processStartWatcher.EventArrived += (sender, e) =>
         {
+            if (ProcessStarted is null)
+                return;
+
             var targetInstance = (ManagementBaseObject)e.NewEvent.Properties["TargetInstance"].Value;
 
             OnProcessStarted(ToProcessInfo(targetInstance));
@@ -27,6 +30,9 @@ internal partial class ProcessWatcher : IProcessWatcher
         var processStopWatcher = new ManagementEventWatcher(new WqlEventQuery("SELECT * FROM __InstanceDeletionEvent WITHIN 1 WHERE TargetInstance ISA 'Win32_Process'"));
         processStopWatcher.EventArrived += (sender, e) =>
         {
+            if (ProcessStopped is null)
+                return;
+
             var targetInstance = (ManagementBaseObject)e.NewEvent.Properties["TargetInstance"].Value;
 
             OnProcessStopped(ToProcessInfo(targetInstance));
@@ -54,18 +60,22 @@ internal partial class ProcessWatcher : IProcessWatcher
 
     protected void OnProcessStarted(ProcessInfo processInfo)
     {
-        LogProcessStarted(processInfo);
-
         var raiseEvent = ProcessStarted;
-        raiseEvent?.Invoke(this, new ProcessEventArgs(processInfo));
+        if (raiseEvent is null)
+            return;
+
+        LogProcessStarted(processInfo);
+        raiseEvent.Invoke(this, new ProcessEventArgs(processInfo));
     }
 
     protected void OnProcessStopped(ProcessInfo processInfo)
     {
-        LogProcessStopped(processInfo);
-
         var raiseEvent = ProcessStopped;
-        raiseEvent?.Invoke(this, new ProcessEventArgs(processInfo));
+        if (raiseEvent is null)
+            return;
+
+        LogProcessStopped(processInfo);
+        raiseEvent.Invoke(this, new ProcessEventArgs(processInfo));
     }
 
     private ProcessInfo ToProcessInfo(ManagementBaseObject targetInstance)

@@ -42,21 +42,9 @@ internal partial class LauncherTrackingBackgroundService(IEnumerable<ILauncherTr
         foreach (var handler in _handlers)
         {
             if (handler.IsEnabled && !handler.IsStarted)
-            {
-                LogStartingHandler(handler.LauncherName);
                 await handler.StartAsync(cancellationToken);
-            }
             else if (!handler.IsEnabled && handler.IsStarted)
-            {
-                LogStoppingHandler(handler.LauncherName);
                 await handler.StopAsync(cancellationToken);
-            }
         }
     }
-
-    [LoggerMessage(Level = LogLevel.Debug, Message = "Starting handler for launcher {LauncherName} because it is enabled but is not currently currning.")]
-    private partial void LogStartingHandler(string launcherName);
-
-    [LoggerMessage(Level = LogLevel.Debug, Message = "Stopping handler for launcher {LauncherName} because it is disabled but is currently running.")]
-    private partial void LogStoppingHandler(string launcherName);
 }
