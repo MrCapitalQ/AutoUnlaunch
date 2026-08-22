@@ -79,6 +79,7 @@ public static class ServiceCollectionExtensions
     public static IServiceCollection AddEpic(this IServiceCollection services)
     {
         services.AddProcessWatcher();
+        services.AddRegistryWatcher();
         services.AddProtocolLauncher();
         services.AddSingleton<ILauncherHandler, EpicLauncherHandler>();
         services.TryAddTransient<EpicSettingsService>();
