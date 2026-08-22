@@ -1,6 +1,8 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Win32;
+using System.Management;
+using System.Security.Principal;
 using Windows.Win32;
 using Windows.Win32.Foundation;
 using Windows.Win32.System.Registry;
@@ -20,12 +22,27 @@ internal partial class RegistryWatcher(RegistryHive hive,
     private readonly RegistryView _view = view;
     private readonly ILogger<RegistryWatcher> _logger = logger;
     private (string Path, RegistryKey RegistryKey)? _currentlyWatched;
+    private ManagementEventWatcher? _managementEventWatcher;
 
     public bool IsStarted => _currentlyWatched.HasValue;
 
     public void Start() => StartCore();
 
     public void Stop() => StopCore();
+
+    public void Dispose() => Stop();
+
+    protected void OnChanged()
+    {
+        var raiseEvent = Changed;
+        raiseEvent?.Invoke(this, new());
+    }
+
+    protected void OnErrored()
+    {
+        var raiseEvent = Errored;
+        raiseEvent?.Invoke(this, new());
+    }
 
     private void StartCore(bool shouldLogInitialMessage = true)
     {
@@ -53,7 +70,15 @@ internal partial class RegistryWatcher(RegistryHive hive,
             throw new InvalidOperationException($"Unable to open registry key {_path} or one any of its parent.");
         }
 
-        _ = Task.Run(() => RunNotifyLoop(_currentlyWatched.Value));
+        // Special case due to a bug with registry virtualization. By default, registry keys in HKEY_CURRENT_USER are
+        // virtualized for write operations in packaged apps. Unfortunately, there's a Windows bug that causes change
+        // notifications to not work for virtualized registry keys. It is possible to disable virtualization but may
+        // cause undesirable side effects. Instead, the management event watcher is used as a workaround.
+        // https://github.com/microsoft/WindowsAppSDK/issues/4075
+        if (_hive is RegistryHive.CurrentUser)
+            StartManagementEventWatcher();
+        else
+            _ = Task.Run(() => RunNotifyLoop(_currentlyWatched.Value));
     }
 
     private void StopCore(bool shouldLogInitialMessage = true)
@@ -66,6 +91,14 @@ internal partial class RegistryWatcher(RegistryHive hive,
 
         if (shouldLogInitialMessage)
             LogStoppingWatcher(_path);
+
+        if (_managementEventWatcher is not null)
+        {
+            _managementEventWatcher.Stop();
+            _managementEventWatcher.EventArrived -= ManagementEventWatcher_EventArrived;
+            _managementEventWatcher.Dispose();
+            _managementEventWatcher = null;
+        }
 
         _currentlyWatched.Value.RegistryKey.Dispose();
         _currentlyWatched = null;
@@ -85,18 +118,6 @@ internal partial class RegistryWatcher(RegistryHive hive,
             OnErrored();
             Stop();
         }
-    }
-
-    protected void OnChanged()
-    {
-        var raiseEvent = Changed;
-        raiseEvent?.Invoke(this, new());
-    }
-
-    protected void OnErrored()
-    {
-        var raiseEvent = Errored;
-        raiseEvent?.Invoke(this, new());
     }
 
     private void TryOpenClosestRegistryKey(string path)
@@ -147,6 +168,31 @@ internal partial class RegistryWatcher(RegistryHive hive,
         LogNotWatchingRegistryKey(target.Path);
     }
 
+    private void StartManagementEventWatcher()
+    {
+        if (WindowsIdentity.GetCurrent().User is not { } currentUser)
+            throw new InvalidOperationException("Unable to determine current user.");
+
+        var subKey = _path.TrimStart('\\');
+
+        // Replicate redirection when accessing 32-bit registry in 64-bit apps.
+        const string softwarePrefix = "Software"; // TODO: Move to class level
+        if (Environment.Is64BitOperatingSystem && _view is RegistryView.Registry32
+            && subKey.StartsWith(softwarePrefix, StringComparison.OrdinalIgnoreCase)
+            && !subKey.StartsWith(@$"{softwarePrefix}\Wow6432Node", StringComparison.OrdinalIgnoreCase))
+            subKey = subKey.Insert(softwarePrefix.Length, @"\Wow6432Node");
+
+        var query = $"""
+            SELECT *
+            FROM RegistryTreeChangeEvent
+            WHERE Hive = 'HKEY_USERS'
+            AND RootPath = '{currentUser.Value}\\\\{subKey.Replace(@"\", @"\\")}'
+            """;
+        _managementEventWatcher = new ManagementEventWatcher(query);
+        _managementEventWatcher.EventArrived += ManagementEventWatcher_EventArrived;
+        _managementEventWatcher.Start();
+    }
+
     private static string? GetClosestPath(RegistryHive hive, string? path, RegistryView view)
     {
         if (string.IsNullOrWhiteSpace(path))
@@ -161,7 +207,23 @@ internal partial class RegistryWatcher(RegistryHive hive,
         return path;
     }
 
-    public void Dispose() => Stop();
+    private void ManagementEventWatcher_EventArrived(object sender, EventArrivedEventArgs e)
+    {
+        if (!_currentlyWatched.HasValue)
+            return;
+
+        if (!string.Equals(GetClosestPath(_hive, _path, _view), _currentlyWatched.Value.Path, StringComparison.OrdinalIgnoreCase))
+        {
+            LogRestartDueToRegistryTreeChange(_path);
+            Restart();
+            return;
+        }
+        else if (string.Equals(_path, _currentlyWatched.Value.Path, StringComparison.OrdinalIgnoreCase))
+        {
+            LogTargetRegistryTreeChanged(_path);
+            OnChanged();
+        }
+    }
 
     [LoggerMessage(Level = LogLevel.Trace, Message = "Registry watcher for {RegistryKeyPath} is already started.")]
     private partial void LogWatcherAlreadyStarted(string registryKeyPath);
