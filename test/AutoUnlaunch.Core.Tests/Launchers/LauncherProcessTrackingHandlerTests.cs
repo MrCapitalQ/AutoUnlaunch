@@ -224,7 +224,7 @@ public class LauncherProcessTrackingHandlerTests
         public event EventHandler<ProcessEventArgs>? ProcessStarted;
         public event EventHandler<ProcessEventArgs>? ProcessStopped;
 
-        public virtual IEnumerable<ProcessInfo> GetCurrentProcesses() => Enumerable.Empty<ProcessInfo>();
+        public virtual IEnumerable<ProcessInfo> GetCurrentProcesses() => [];
 
         public void RaiseProcessStarted(ProcessInfo processInfo) => ProcessStarted?.Invoke(this, new ProcessEventArgs(processInfo));
         public void RaiseProcessStopped(ProcessInfo processInfo) => ProcessStopped?.Invoke(this, new ProcessEventArgs(processInfo));
