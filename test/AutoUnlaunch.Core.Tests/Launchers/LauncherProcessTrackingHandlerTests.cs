@@ -36,7 +36,7 @@ public class LauncherProcessTrackingHandlerTests
 
         // Assert
         Assert.True(_launcherHandler.IsStarted);
-        Assert.True(_launcherHandler.CalledStartCoreAsync);
+        Assert.True(_launcherHandler.CalledOnStartedAsync);
         Assert.Equal("Handler for TestLauncher is already started.", _logger.LatestRecord.Message);
         _processWatcher.Received(1).GetCurrentProcesses(); // Only called as part of starting the handler.
     }
@@ -130,7 +130,7 @@ public class LauncherProcessTrackingHandlerTests
 
         // Assert
         Assert.False(_launcherHandler.IsStarted);
-        Assert.False(_launcherHandler.CalledStopCoreAsync);
+        Assert.False(_launcherHandler.CalledOnStoppedAsync);
         Assert.Equal("Handler for launcher TestLauncher is already stopped.", _logger.LatestRecord.Message);
     }
 
@@ -145,7 +145,7 @@ public class LauncherProcessTrackingHandlerTests
 
         // Assert
         Assert.False(_launcherHandler.IsStarted);
-        Assert.True(_launcherHandler.CalledStopCoreAsync);
+        Assert.True(_launcherHandler.CalledOnStoppedAsync);
         Assert.Equal("Stopping handler for launcher TestLauncher.", _logger.LatestRecord.Message);
     }
 
@@ -158,8 +158,10 @@ public class LauncherProcessTrackingHandlerTests
 
         private bool _isLauncherRunning = true;
 
-        public bool CalledStartCoreAsync { get; private set; }
-        public bool CalledStopCoreAsync { get; private set; }
+        public bool CalledOnStartingAsync { get; private set; }
+        public bool CalledOnStartedAsync { get; private set; }
+        public bool CalledOnStoppingAsync { get; private set; }
+        public bool CalledOnStoppedAsync { get; private set; }
         public bool CalledStopLauncherAsync { get; private set; }
         public bool CalledOnLauncherActivityStarted { get; private set; }
         public bool CalledOnLauncherActivityEnded { get; private set; }
@@ -168,16 +170,28 @@ public class LauncherProcessTrackingHandlerTests
 
         public void SetIsLauncherRunning(bool isRunning) { _isLauncherRunning = isRunning; }
 
-        protected override Task StartCoreAsync(CancellationToken cancellationToken = default)
+        protected override Task OnStartingAsync(CancellationToken cancellationToken = default)
         {
-            CalledStartCoreAsync = true;
-            return Task.CompletedTask;
+            CalledOnStartingAsync = true;
+            return base.OnStartingAsync(cancellationToken);
         }
 
-        protected override Task StopCoreAsync(CancellationToken cancellationToken = default)
+        protected override Task OnStartedAsync(CancellationToken cancellationToken = default)
         {
-            CalledStopCoreAsync = true;
-            return Task.CompletedTask;
+            CalledOnStartedAsync = true;
+            return base.OnStartedAsync(cancellationToken);
+        }
+
+        protected override Task OnStoppingAsync(CancellationToken cancellationToken = default)
+        {
+            CalledOnStoppingAsync = true;
+            return base.OnStoppingAsync(cancellationToken);
+        }
+
+        protected override Task OnStoppedAsync(CancellationToken cancellationToken = default)
+        {
+            CalledOnStoppedAsync = true;
+            return base.OnStoppedAsync(cancellationToken);
         }
 
         protected override Task<bool> IsLauncherActivityAsync(ProcessInfo processInfo)
@@ -210,7 +224,7 @@ public class LauncherProcessTrackingHandlerTests
         public event EventHandler<ProcessEventArgs>? ProcessStarted;
         public event EventHandler<ProcessEventArgs>? ProcessStopped;
 
-        public virtual IEnumerable<ProcessInfo> GetCurrentProcesses() => [];
+        public virtual IEnumerable<ProcessInfo> GetCurrentProcesses() => Enumerable.Empty<ProcessInfo>();
 
         public void RaiseProcessStarted(ProcessInfo processInfo) => ProcessStarted?.Invoke(this, new ProcessEventArgs(processInfo));
         public void RaiseProcessStopped(ProcessInfo processInfo) => ProcessStopped?.Invoke(this, new ProcessEventArgs(processInfo));
